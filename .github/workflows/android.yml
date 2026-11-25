@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+    paths: ["index.html", "icons/**", "android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # publish the APK as a GitHub release
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Bundle the web app into the APK
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp -r index.html icons android/app/src/main/assets/www/
+
+      - name: Build signed release APK
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Repository secret ANDROID_KEYSTORE_B64 is missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          export KEYSTORE_FILE="$RUNNER_TEMP/release.p12"
+          gradle -p android assembleRelease --no-daemon --stacktrace
+          cp android/app/build/outputs/apk/release/app-release.apk GEOpeek.apk
+          ls -l GEOpeek.apk
+
+      - name: Publish as the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v2.0.${{ github.run_number }}"
+          gh release create "$TAG" GEOpeek.apk --title "GEOpeek $TAG (Android)" --latest \
+            --notes "Android app. Install on the phone: download GEOpeek.apk, open it, allow installing from this source. Direct link: https://github.com/${{ github.repository }}/releases/latest/download/GEOpeek.apk"
