@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b14" id="themeMeta">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GEOpeek">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>GEOpeek</title>
+<style>
+/* GEOpeek mobile — a night-sky field instrument.
+   Hierarchy: azimuth + elevation are the answer (largest), skew/range/delay secondary, everything else in sheets.
+   Theme tokens: light by default here, dark via prefers-color-scheme or data-theme. The globe card is always "space". */
+:root{
+  --bg:#eef2f8;--bg2:#e4eaf3;--card:#ffffff;--card2:#f6f8fc;--ink:#0b1424;--mute:#5b6779;--faint:#8a95a6;--line:rgba(11,20,36,.09);
+  --acc:#0a8a5f;--accInk:#ffffff;--accSoft:rgba(10,138,95,.12);--cyan:#0b7fc4;--warn:#b54708;--good:#12a464;--wait:#d99a00;--bad:#d9541e;
+  --heroA:#0f2f4a;--heroB:#0a1a2c;--heroInk:#f2fbff;--heroMute:rgba(220,240,255,.68);--heroAcc:#7ee2a8;
+  --shadow:0 1px 2px rgba(11,20,36,.06),0 8px 24px rgba(11,20,36,.07);--r:20px;
+}
+:root[data-theme=dark]{
+  --bg:#070b14;--bg2:#0b1220;--card:#0f1726;--card2:#131d2f;--ink:#e8eef7;--mute:#93a0b4;--faint:#5f6b7e;--line:rgba(255,255,255,.07);
+  --acc:#7ee2a8;--accInk:#062014;--accSoft:rgba(126,226,168,.12);--cyan:#5cc8ff;--warn:#ffb380;--good:#4ade80;--wait:#fbbf24;--bad:#fb7a52;
+  --heroA:#10314e;--heroB:#0a1626;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#070b14;--bg2:#0b1220;--card:#0f1726;--card2:#131d2f;--ink:#e8eef7;--mute:#93a0b4;--faint:#5f6b7e;--line:rgba(255,255,255,.07);
+  --acc:#7ee2a8;--accInk:#062014;--accSoft:rgba(126,226,168,.12);--cyan:#5cc8ff;--warn:#ffb380;--good:#4ade80;--wait:#fbbf24;--bad:#fb7a52;
+  --heroA:#10314e;--heroB:#0a1626;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}}
+[hidden]{display:none!important}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:clip;
+  background:radial-gradient(120% 60% at 50% -10%,var(--bg2),var(--bg) 60%) fixed;padding-bottom:env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-.02em}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+/* app bar */
+.bar{position:sticky;top:0;z-index:6;padding:calc(env(safe-area-inset-top) + 8px) 0 8px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.bar .wrap{display:flex;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:750;font-size:19px;letter-spacing:-.02em;margin-right:auto}
+.brand svg{width:30px;height:30px}
+.ib{width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow)}
+.ib svg{width:22px;height:22px}
+.status{display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 10px}
+.chip{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px;color:var(--mute);cursor:pointer;max-width:100%}
+.chip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--faint)}.dot.ok{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent)}.dot.bad{background:var(--bad)}.dot.wait{background:var(--wait)}
+
+/* satellite picker */
+.satcard{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer;min-height:64px}
+.satcard .ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--accSoft);color:var(--acc)}
+.satcard .tx{flex:1}.satcard b{display:block;font-size:17px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.satcard small{display:block;font-size:13px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.satcard .chev{color:var(--faint)}
+
+/* hero: azimuth + elevation */
+.hero{margin-top:12px;border-radius:24px;padding:16px;color:var(--heroInk);position:relative;overflow:hidden;
+  background:radial-gradient(130% 90% at 0% 0%,var(--heroA),var(--heroB));box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.06)}
+.hero::after{content:"";position:absolute;inset:auto -30% -60% auto;width:80%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(126,226,168,.16),transparent 65%);pointer-events:none}
+.hero.down{background:radial-gradient(130% 90% at 0% 0%,#4a2a14,#1e1208)}
+.ae{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;position:relative;z-index:1}
+.tile{border-radius:18px;padding:12px 12px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);container-type:inline-size}
+.tile .h{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.tile .k{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--heroAcc)}
+.tile .ks{font-size:11px;color:var(--heroMute);text-transform:none;letter-spacing:0;font-weight:500}
+.tile .v{font-size:clamp(36px,30cqi,72px);font-weight:750;line-height:1;margin:8px 0 6px;white-space:nowrap}
+.tile .v sup{font-size:.45em;font-weight:600;vertical-align:.95em;margin-left:1px;opacity:.85}
+.tile .s{font-size:13px;color:var(--heroMute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile svg.g{width:38px;height:38px;flex:none}
+.minor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;position:relative;z-index:1}
+.m{border-radius:14px;padding:9px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.m .k{font-size:11px;color:var(--heroMute);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.m .v{font-size:19px;font-weight:700;line-height:1.2;margin-top:2px;white-space:nowrap}
+.m .s{font-size:11.5px;color:var(--heroMute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* visual card */
+.viz{margin-top:12px;border-radius:24px;overflow:hidden;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.viz .tabs{display:flex;align-items:center;gap:8px;padding:10px 10px 0}
+.seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:3px;border-radius:12px;background:var(--card2);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;border-radius:9px;min-height:36px;padding:4px 14px;font-weight:600;font-size:14px;color:var(--mute);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.tabs .sp{flex:1}
+.mini{min-height:36px;padding:4px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:var(--mute)}
+.stage{position:relative;margin:10px;border-radius:18px;overflow:hidden;aspect-ratio:1/1}
+.space{background:radial-gradient(90% 90% at 50% 40%,#0d1e36 0%,#060c18 55%,#03060d 100%)}
+#globe{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#globe:active{cursor:grabbing}
+.legend{position:absolute;left:10px;right:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:rgba(220,235,255,.75);pointer-events:none}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.cap{font-size:12px;color:var(--mute);padding:0 14px 12px}
+#dial{width:100%;height:100%;display:block}
+
+/* pointing aid */
+.point{margin-top:12px}
+.bigbtn{width:100%;min-height:54px;border-radius:16px;border:0;background:var(--acc);color:var(--accInk);font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:var(--shadow)}
+.bigbtn.off{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.guide{display:none;margin-top:10px;border-radius:20px;padding:14px;background:var(--card);border:1px solid var(--line)}
+.guide.on{display:block}.guide.hit{background:var(--accSoft);border-color:var(--acc)}
+.guide .row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.guide .k{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.06em}.guide .big{font-size:30px;font-weight:750}
+.hint{font-size:13px;color:var(--mute);margin-top:8px;line-height:1.45}
+
+/* details */
+.det{margin-top:12px;border-radius:24px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
+details+details{border-top:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;min-height:54px;display:flex;align-items:center;justify-content:space-between;font-weight:650;padding:0 16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+details[open] summary::after{transform:rotate(225deg) translate(-2px,-2px)}
+dl{margin:0;padding:0 16px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;font-size:14.5px}
+dt{color:var(--mute);padding:8px 10px 8px 0;border-top:1px solid var(--line)}dd{margin:0;padding:8px 0;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.foot{font-size:11.5px;color:var(--faint);padding:16px 18px 28px;max-width:560px;margin:0 auto;line-height:1.5}
+
+/* sheets */
+dialog{border:0;padding:0;width:100%;max-width:600px;max-height:92vh;margin:auto auto 0;border-radius:26px 26px 0 0;background:var(--card);color:var(--ink);box-shadow:0 -10px 40px rgba(0,0,0,.35)}
+dialog[open]{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}
+dialog::backdrop{background:rgba(3,6,13,.55);backdrop-filter:blur(2px)}
+.sheet{padding:8px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:4px;max-height:92vh}
+.sheet::before{content:"";align-self:center;width:40px;height:4px;border-radius:2px;background:var(--line);margin:2px 0 8px;flex:none}
+.sheet>*{flex:none}.sheet>#tlePane{flex:1 1 auto}
+.sheethead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.sheethead h2{margin:0;font-size:21px;letter-spacing:-.01em}
+.sec{font-size:12px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 6px}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 5px}
+input,select{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:48px}
+input:disabled{opacity:.6}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.seg.full{display:grid;width:100%}
+.chk{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--ink);margin:10px 0 0}.chk input{width:22px;min-height:22px;height:22px;accent-color:var(--acc)}
+.list{overflow:auto;flex:1;min-height:200px;border:1px solid var(--line);border-radius:16px;margin-top:10px;background:var(--card2)}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.item.sel{background:var(--accSoft)}.item.sel .nm{color:var(--acc)}.item .nm{font-weight:650}.item .sub{font-size:12.5px;color:var(--mute)}.item .ae2{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
+.results{display:flex;flex-direction:column;margin-top:6px}.res{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;font-size:15px;padding:10px 4px;min-height:48px;cursor:pointer}.res small{color:var(--mute);font-size:13px;white-space:nowrap}
+.saved{display:flex;flex-direction:column;gap:6px}.site{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card2)}.site.on{border-color:var(--acc);background:var(--accSoft)}.site>button{border:0;background:transparent;cursor:pointer}.site .use{flex:1;text-align:left;padding:8px 12px;min-height:50px}.site .use small{display:block;font-size:12.5px;color:var(--mute)}.site .del{width:48px;font-size:20px;color:var(--mute)}
+.inline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:8px}
+.slots{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.slots button{font-size:14px;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:6px 13px;min-height:40px;cursor:pointer}
+.btn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card2);font-weight:650;font-size:14.5px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center}
+.btn.pri{background:var(--acc);color:var(--accInk);border-color:transparent}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.msg{font-size:13px;margin-top:6px;color:var(--mute)}.msg.bad{color:var(--warn)}
+@media(min-width:900px){.wrap{max-width:1100px}.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}.foot{max-width:1100px}}
+@media(prefers-reduced-motion:reduce){dialog[open]{animation:none}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc8ff"/><stop offset="1" stop-color="#7ee2a8"/></linearGradient></defs><circle cx="16" cy="16" r="7" fill="url(#lg)"/><ellipse cx="16" cy="16" rx="14" ry="5.2" fill="none" stroke="url(#lg)" stroke-width="1.8" transform="rotate(-18 16 16)"/><circle cx="28.6" cy="11.9" r="2.2" fill="#fff"/></svg>GEOpeek</div>
+  <button class="ib" id="setBtn" data-ta="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+</div></header>
+
+<div class="wrap">
+  <div class="status">
+    <button class="chip" id="gpsChip"><span class="dot wait" id="gpsDot"></span><span id="gpsTxt" data-t="locating">Locating…</span></button>
+    <button class="chip" id="dataChip"><span class="dot wait" id="dataDot"></span><span id="dataTxt" data-t="loadingData">Loading data…</span></button>
+  </div>
+</div>
+
+<main class="wrap"><div class="cols">
+  <div>
+    <button class="satcard" id="satBtn" aria-haspopup="dialog">
+      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7 9 3 5 7l4 4M17 11l4 4-4 4-4-4M8 12l4 4M16 8l3-3"/><path d="m9 15-3 3M3 21c0-3 1-4 3-5"/></svg></span>
+      <span class="tx"><b id="satName" data-t="selectSat">Select satellite</b><small id="satSub" data-t="tapToChoose">Tap to choose</small></span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+
+    <section class="hero" id="hero" aria-live="polite">
+      <div class="ae">
+        <div class="tile">
+          <div class="h"><div><div class="k" data-t="az">Azimuth</div><div class="ks" data-t="azSub">true north</div></div>
+            <svg class="g" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/><path d="M20 3v4M37 20h-4M20 37v-4M3 20h4" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><g id="azNeedle"><path d="M20 6 23.5 20 20 18 16.5 20Z" fill="#7ee2a8"/><path d="M20 34 23.5 20 20 22 16.5 20Z" fill="rgba(255,255,255,.25)"/></g></svg></div>
+          <div class="v num" id="vAz">—</div><div class="s num" id="vAzM">—</div>
+        </div>
+        <div class="tile">
+          <div class="h"><div><div class="k" data-t="el">Elevation</div><div class="ks" data-t="elSub">with refraction</div></div>
+            <svg class="g" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 36H36" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><path d="M36 36A32 32 0 0 0 4 4" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5" transform="translate(0 0)"/><line id="elLine" x1="4" y1="36" x2="36" y2="36" stroke="#7ee2a8" stroke-width="2.6" stroke-linecap="round"/><circle cx="4" cy="36" r="2.4" fill="#fff"/></svg></div>
+          <div class="v num" id="vEl">—</div><div class="s num" id="vElS">—</div>
+        </div>
+      </div>
+      <div class="minor">
+        <div class="m"><div class="k" data-t="skew">LNB skew</div><div class="v num" id="vSk">—</div><div class="s" id="vSkS">—</div></div>
+        <div class="m"><div class="k" data-t="range">Range</div><div class="v num" id="vRg">—</div><div class="s" id="vRgS">—</div></div>
+        <div class="m"><div class="k" data-t="motor">Motor</div><div class="v num" id="vHa">—</div><div class="s" id="vHaS">DiSEqC</div></div>
+      </div>
+    </section>
+
+    <section class="point">
+      <button class="bigbtn" id="pointBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg><span id="pointTxt" data-t="pointStart">Start pointing aid</span></button>
+      <div class="guide" id="guide" aria-live="polite">
+        <div class="row"><div><div class="k" id="gTurnK" data-t="turn">Turn</div><div class="big num" id="gTurn">—</div></div><div><div class="k" id="gTiltK" data-t="tilt">Tilt</div><div class="big num" id="gTilt">—</div></div></div>
+        <div class="hint" id="gNote" data-t="aimNote">Hold the phone upright and aim the back camera at the sky.</div>
+      </div>
+      <div class="hint" data-t="compassWarn"></div>
+    </section>
+  </div>
+
+  <div>
+    <section class="viz">
+      <div class="tabs">
+        <div class="seg" role="group"><button id="vGlobe" aria-pressed="true" data-t="globe">Globe</button><button id="vSky" aria-pressed="false" data-t="sky">Sky</button></div>
+        <span class="sp"></span><button class="mini" id="recenter" data-t="recenter">Recenter</button>
+      </div>
+      <div class="stage space" id="globeStage">
+        <canvas id="globe" role="img" data-ta="globeAria"></canvas>
+        <div class="legend"><span><i style="background:#8ff0c0"></i><span data-t="legendVis"></span></span><span><i style="background:rgba(140,160,190,.7)"></i><span data-t="legendHid"></span></span><span><i style="background:#ffcf5a"></i><span data-t="legendYou"></span></span></div>
+      </div>
+      <div class="stage" id="skyStage" hidden><svg id="dial" viewBox="0 0 400 400" role="img" data-ta="skyAria"></svg></div>
+      <div class="cap" id="vizCap" data-t="globeHint"></div>
+    </section>
+    <section class="det" id="det"></section>
+  </div>
+</div></main>
+<div class="foot" data-t="foot"></div>
+
+<dialog id="satDlg"><div class="sheet">
+  <div class="sheethead"><h2 data-t="satellite">Satellite</h2><button class="btn pri" data-close data-t="done">Done</button></div>
+  <div class="seg full"><button id="srcTle" aria-pressed="true" data-t="srcTle">NORAD TLE</button><button id="srcSlot" aria-pressed="false" data-t="srcSlot">Orbital slot</button></div>
+  <div id="tlePane" style="display:flex;flex-direction:column;min-height:0;flex:1">
+    <input id="q" data-tp="search" autocomplete="off" style="margin-top:10px">
+    <label class="chk"><input type="checkbox" id="visOnly" checked> <span data-t="visOnly"></span></label>
+    <div class="list" id="list"></div>
+  </div>
+  <div id="slotPane" hidden>
+    <label for="slot" data-t="slotLon"></label><input id="slot" type="number" inputmode="decimal" step="0.1" value="42">
+    <div class="slots" id="slots"></div>
+  </div>
+</div></dialog>
+
+<dialog id="setDlg"><div class="sheet" style="overflow:auto">
+  <div class="sheethead"><h2 data-t="settings">Settings</h2><button class="btn pri" data-close data-t="done">Done</button></div>
+  <div class="sec" data-t="location"></div>
+  <div class="seg full"><button id="locGps" aria-pressed="true" data-t="myLoc"></button><button id="locMan" aria-pressed="false" data-t="otherLoc"></button></div>
+  <div class="msg" id="locMsg"></div>
+  <div id="otherPane" hidden>
+    <label for="place" data-t="placeSearch"></label>
+    <input id="place" type="search" data-tp="placeHolder" autocomplete="off" enterkeyhint="search">
+    <div class="results" id="places"></div>
+    <label data-t="saved"></label>
+    <div class="saved" id="saved"></div>
+  </div>
+  <div class="two"><div><label for="lat" data-t="lat"></label><input id="lat" inputmode="text" value="39.9334"></div><div><label for="lon" data-t="lon"></label><input id="lon" inputmode="text" value="32.8597"></div></div>
+  <div class="two"><div><label for="hgt" data-t="hgt"></label><input id="hgt" type="number" inputmode="decimal" value="938"></div><div><label for="off" data-t="off"></label><input id="off" type="number" inputmode="decimal" step="0.1" value="0"></div></div>
+  <div class="hint" data-t="coordHint"></div>
+  <div class="btns"><button class="btn" id="demBtn" data-t="demBtn"></button><button class="btn" id="saveSite" data-t="saveSite"></button></div>
+  <div class="inline" id="saveRow" hidden><input id="siteName" data-tp="siteName" maxlength="40"><button class="btn pri" id="saveOk" data-t="save"></button></div>
+  <label for="mag" data-t="mag"></label><input id="mag" type="number" inputmode="decimal" step="0.01" disabled>
+  <label class="chk"><input type="checkbox" id="magAuto" checked> <span data-t="magAuto"></span></label>
+  <label for="tm" data-t="time"></label><input id="tm" type="datetime-local" disabled>
+  <label class="chk"><input type="checkbox" id="live" checked> <span data-t="live"></span></label>
+  <div class="sec" data-t="appearance"></div>
+  <label data-t="language"></label>
+  <div class="seg full"><button id="lngTr" aria-pressed="false">Türkçe</button><button id="lngEn" aria-pressed="false">English</button></div>
+  <label data-t="theme"></label>
+  <div class="seg full"><button id="thAuto" aria-pressed="true" data-t="themeAuto"></button><button id="thLight" aria-pressed="false" data-t="themeLight"></button><button id="thDark" aria-pressed="false" data-t="themeDark"></button></div>
+  <div class="sec" data-t="orbData"></div>
+  <div class="msg" id="dataMsg"></div>
+  <div class="btns"><button class="btn" id="refresh" data-t="checkUpd"></button><label class="btn" style="margin:0;color:var(--ink)"><span data-t="loadFile"></span><input type="file" id="file" accept=".txt,.tle,text/plain" hidden></label></div>
+</div></dialog>
+
+<script>/*!
+ * satellite-js v5.0.0
+ * (c) 2013 Shashwat Kandadai and UCSC
+ * https://github.com/shashwatak/satellite-js
+ * License: MIT
+ */
+
+!function(o,t){"object"==typeof exports&&"undefined"!=typeof module?module.exports=t():"function"==typeof define&&define.amd?define(t):(o="undefined"!=typeof globalThis?globalThis:o||self).satellite=t()}(this,(function(){"use strict";var o=Math.PI,t=2*o,e=o/180,s=180/o,a=1440,n=398600.8,d=6378.135,r=60/Math.sqrt(650942.9922085947),i=d*r/60,c=1/r,h=.001082616,m=-253881e-11,l=-165597e-11,p=m/h,x=2/3;function g(o,t){for(var e=[31,o%4==0?29:28,31,30,31,30,31,31,30,31,30,31],s=Math.floor(t),a=1,n=0;s>n+e[a-1]&&a<12;)n+=e[a-1],a+=1;var d=a,r=s-n,i=24*(t-s),c=Math.floor(i);i=60*(i-c);var h=Math.floor(i);return{mon:d,day:r,hr:c,minute:h,sec:60*(i-h)}}function M(o,t,e,s,a,n){var d=arguments.length>6&&void 0!==arguments[6]?arguments[6]:0;return 367*o-Math.floor(7*(o+Math.floor((t+9)/12))*.25)+Math.floor(275*t/9)+e+1721013.5+((d/6e4+n/60+a)/60+s)/24}function f(o,t,e,s,a,n,d){if(o instanceof Date){var r=o;return M(r.getUTCFullYear(),r.getUTCMonth()+1,r.getUTCDate(),r.getUTCHours(),r.getUTCMinutes(),r.getUTCSeconds(),r.getUTCMilliseconds())}return M(o,t,e,s,a,n,d)}function u(e,s){var a,n,d,r,i,c,h,m,l,p,x,g,M,f,u,z,v,y,b=e.e3,q=e.ee2,w=e.peo,T=e.pgho,j=e.pho,E=e.pinco,F=e.plo,A=e.se2,C=e.se3,L=e.sgh2,S=e.sgh3,U=e.sgh4,D=e.sh2,I=e.sh3,R=e.si2,_=e.si3,k=e.sl2,O=e.sl3,P=e.sl4,Z=e.t,G=e.xgh2,H=e.xgh3,Y=e.xgh4,$=e.xh2,B=e.xh3,J=e.xi2,K=e.xi3,N=e.xl2,Q=e.xl3,V=e.xl4,W=e.zmol,X=e.zmos,oo=s.init,to=s.opsmode,eo=s.ep,so=s.inclp,ao=s.nodep,no=s.argpp,ro=s.mp;y=X+119459e-10*Z,"y"===oo&&(y=X),v=y+.0335*Math.sin(y);var io=A*(h=.5*(f=Math.sin(v))*f-.25)+C*(m=-.5*f*Math.cos(v)),co=R*h+_*m,ho=k*h+O*m+P*f,mo=L*h+S*m+U*f,lo=D*h+I*m;return y=W+.00015835218*Z,"y"===oo&&(y=W),v=y+.1098*Math.sin(y),l=io+(q*(h=.5*(f=Math.sin(v))*f-.25)+b*(m=-.5*f*Math.cos(v))),g=co+(J*h+K*m),M=ho+(N*h+Q*m+V*f),p=mo+(G*h+H*m+Y*f),x=lo+($*h+B*m),"n"===oo&&(M-=F,p-=T,x-=j,so+=g-=E,eo+=l-=w,r=Math.sin(so),d=Math.cos(so),so>=.2?(no+=p-=d*(x/=r),ao+=x,ro+=M):(a=r*(c=Math.sin(ao)),n=r*(i=Math.cos(ao)),a+=x*i+g*d*c,n+=-x*c+g*d*i,(ao%=t)<0&&"a"===to&&(ao+=t),u=ro+no+d*ao,u+=M+p-g*ao*r,z=ao,(ao=Math.atan2(a,n))<0&&"a"===to&&(ao+=t),Math.abs(z-ao)>o&&(ao<z?ao+=t:ao-=t),no=u-(ro+=M)-d*ao)),{ep:eo,inclp:so,nodep:ao,argpp:no,mp:ro}}function z(o){var s=(o-2451545)/36525,a=-62e-7*s*s*s+.093104*s*s+3164400184.812866*s+67310.54841;return(a=a*e/240%t)<0&&(a+=t),a}function v(){return(arguments.length<=0?void 0:arguments[0])instanceof Date||arguments.length>1?z(f.apply(void 0,arguments)):z.apply(void 0,arguments)}function y(e,s){var a,n,c,m,l,g,M,f,z,v,y,b,q,w,T,j,E,F,A,C,L,S,U,D,I,R;e.t=s,e.error=0;var _=e.mo+e.mdot*e.t,k=e.argpo+e.argpdot*e.t,O=e.nodeo+e.nodedot*e.t;f=k,C=_;var P=e.t*e.t;if(S=O+e.nodecf*P,j=1-e.cc1*e.t,E=e.bstar*e.cc4*e.t,F=e.t2cof*P,1!==e.isimp){g=e.omgcof*e.t;var Z=1+e.eta*Math.cos(_);C=_+(T=g+e.xmcof*(Z*Z*Z-e.delmo)),f=k-T,b=(y=P*e.t)*e.t,j=j-e.d2*P-e.d3*y-e.d4*b,E+=e.bstar*e.cc5*(Math.sin(C)-e.sinmao),F=F+e.t3cof*y+b*(e.t4cof+e.t*e.t5cof)}L=e.no;var G=e.ecco;if(A=e.inclo,"d"===e.method){q=e.t;var H=function(o){var e,s,a,n,d,r,i,c,h=o.irez,m=o.d2201,l=o.d2211,p=o.d3210,x=o.d3222,g=o.d4410,M=o.d4422,f=o.d5220,u=o.d5232,z=o.d5421,v=o.d5433,y=o.dedt,b=o.del1,q=o.del2,w=o.del3,T=o.didt,j=o.dmdt,E=o.dnodt,F=o.domdt,A=o.argpo,C=o.argpdot,L=o.t,S=o.tc,U=o.gsto,D=o.xfact,I=o.xlamo,R=o.no,_=o.atime,k=o.em,O=o.argpm,P=o.inclm,Z=o.xli,G=o.mm,H=o.xni,Y=o.nodem,$=o.nm,B=.13130908,J=2.8843198,K=.37448087,N=5.7686396,Q=.95240898,V=1.8014998,W=1.050833,X=4.4108898,oo=259200,to=0,eo=0,so=(U+.0043752690880113*S)%t;if(k+=y*L,P+=T*L,O+=F*L,Y+=E*L,G+=j*L,0!==h){(0===_||L*_<=0||Math.abs(L)<Math.abs(_))&&(_=0,H=R,Z=I),e=L>0?720:-720;for(var ao=381;381===ao;)2!==h?(i=b*Math.sin(Z-B)+q*Math.sin(2*(Z-J))+w*Math.sin(3*(Z-K)),d=H+D,r=b*Math.cos(Z-B)+2*q*Math.cos(2*(Z-J))+3*w*Math.cos(3*(Z-K)),r*=d):(a=(c=A+C*_)+c,s=Z+Z,i=m*Math.sin(a+Z-N)+l*Math.sin(Z-N)+p*Math.sin(c+Z-Q)+x*Math.sin(-c+Z-Q)+g*Math.sin(a+s-V)+M*Math.sin(s-V)+f*Math.sin(c+Z-W)+u*Math.sin(-c+Z-W)+z*Math.sin(c+s-X)+v*Math.sin(-c+s-X),d=H+D,r=m*Math.cos(a+Z-N)+l*Math.cos(Z-N)+p*Math.cos(c+Z-Q)+x*Math.cos(-c+Z-Q)+f*Math.cos(c+Z-W)+u*Math.cos(-c+Z-W)+2*(g*Math.cos(a+s-V)+M*Math.cos(s-V)+z*Math.cos(c+s-X)+v*Math.cos(-c+s-X)),r*=d),Math.abs(L-_)>=720?ao=381:(eo=L-_,ao=0),381===ao&&(Z+=d*e+i*oo,H+=i*e+r*oo,_+=e);$=H+i*eo+r*eo*eo*.5,n=Z+d*eo+i*eo*eo*.5,1!==h?(G=n-2*Y+2*so,to=$-R):(G=n-Y-O+so,to=$-R),$=R+to}return{atime:_,em:k,argpm:O,inclm:P,xli:Z,mm:G,xni:H,nodem:Y,dndt:to,nm:$}}({irez:e.irez,d2201:e.d2201,d2211:e.d2211,d3210:e.d3210,d3222:e.d3222,d4410:e.d4410,d4422:e.d4422,d5220:e.d5220,d5232:e.d5232,d5421:e.d5421,d5433:e.d5433,dedt:e.dedt,del1:e.del1,del2:e.del2,del3:e.del3,didt:e.didt,dmdt:e.dmdt,dnodt:e.dnodt,domdt:e.domdt,argpo:e.argpo,argpdot:e.argpdot,t:e.t,tc:q,gsto:e.gsto,xfact:e.xfact,xlamo:e.xlamo,no:e.no,atime:e.atime,em:G,argpm:f,inclm:A,xli:e.xli,mm:C,xni:e.xni,nodem:S,nm:L});G=H.em,f=H.argpm,A=H.inclm,C=H.mm,S=H.nodem,L=H.nm}if(L<=0)return e.error=2,[!1,!1];var Y=Math.pow(r/L,x)*j*j;if(L=r/Math.pow(Y,1.5),(G-=E)>=1||G<-.001)return e.error=1,[!1,!1];G<1e-6&&(G=1e-6),D=(C+=e.no*F)+f+S;var $=G;if(U=A,z=f%=t,R=S%=t,I=C=((D%=t)-f-S)%t,m=Math.sin(A),c=Math.cos(A),"d"===e.method){var B=u(e,{inclo:e.inclo,init:"n",ep:$,inclp:U,nodep:R,argpp:z,mp:I,opsmode:e.operationmode});if($=B.ep,R=B.nodep,z=B.argpp,I=B.mp,(U=B.inclp)<0&&(U=-U,R+=o,z-=o),$<0||$>1)return e.error=3,[!1,!1]}"d"===e.method&&(m=Math.sin(U),c=Math.cos(U),e.aycof=-.5*p*m,Math.abs(c+1)>15e-13?e.xlcof=-.25*p*m*(3+5*c)/(1+c):e.xlcof=-.25*p*m*(3+5*c)/15e-13);var J=$*Math.cos(z);T=1/(Y*(1-$*$));var K=$*Math.sin(z)+T*e.aycof,N=(I+z+R+T*e.xlcof*J-R)%t;M=N,w=9999.9;for(var Q=1;Math.abs(w)>=1e-12&&Q<=10;)n=Math.sin(M),w=(N-K*(a=Math.cos(M))+J*n-M)/(w=1-a*J-n*K),Math.abs(w)>=.95&&(w=w>0?.95:-.95),M+=w,Q+=1;var V=J*a+K*n,W=J*n-K*a,X=J*J+K*K,oo=Y*(1-X);if(oo<0)return e.error=4,[!1,!1];var to=Y*(1-V),eo=Math.sqrt(Y)*W/to,so=Math.sqrt(oo)/to,ao=Math.sqrt(1-X),no=Y/to*(n-K-J*(T=W/(1+ao))),ro=Y/to*(a-J+K*T);v=Math.atan2(no,ro);var io=(ro+ro)*no,co=1-2*no*no,ho=.5*h*(T=1/oo),mo=ho*T;"d"===e.method&&(l=c*c,e.con41=3*l-1,e.x1mth2=1-l,e.x7thm1=7*l-1);var lo=to*(1-1.5*mo*ao*e.con41)+.5*ho*e.x1mth2*co;if(lo<1)return e.error=6,{position:!1,velocity:!1};v-=.25*mo*e.x7thm1*io;var po=R+1.5*mo*c*io,xo=U+1.5*mo*c*m*co,go=eo-L*ho*e.x1mth2*io/r,Mo=so+L*ho*(e.x1mth2*co+1.5*e.con41)/r,fo=Math.sin(v),uo=Math.cos(v),zo=Math.sin(po),vo=Math.cos(po),yo=Math.sin(xo),bo=Math.cos(xo),qo=-zo*bo,wo=vo*bo,To=qo*fo+vo*uo,jo=wo*fo+zo*uo,Eo=yo*fo;return{position:{x:lo*To*d,y:lo*jo*d,z:lo*Eo*d},velocity:{x:(go*To+Mo*(qo*uo-vo*fo))*i,y:(go*jo+Mo*(wo*uo-zo*fo))*i,z:(go*Eo+Mo*(yo*uo))*i}}}function b(e,s){var a,n,i,m,g,M,f,z,b,q,w,T,j,E,F,A,C,L,S,U,D,I,R,_,k,O,P,Z,G,H,Y,$,B,J,K,N,Q,V,W,X,oo,to,eo,so,ao,no,ro,io,co,ho,mo,lo,po=s.opsmode,xo=s.satn,go=s.epoch,Mo=s.xbstar,fo=s.xecco,uo=s.xargpo,zo=s.xinclo,vo=s.xmo,yo=s.xno,bo=s.xnodeo;e.isimp=0,e.method="n",e.aycof=0,e.con41=0,e.cc1=0,e.cc4=0,e.cc5=0,e.d2=0,e.d3=0,e.d4=0,e.delmo=0,e.eta=0,e.argpdot=0,e.omgcof=0,e.sinmao=0,e.t=0,e.t2cof=0,e.t3cof=0,e.t4cof=0,e.t5cof=0,e.x1mth2=0,e.x7thm1=0,e.mdot=0,e.nodedot=0,e.xlcof=0,e.xmcof=0,e.nodecf=0,e.irez=0,e.d2201=0,e.d2211=0,e.d3210=0,e.d3222=0,e.d4410=0,e.d4422=0,e.d5220=0,e.d5232=0,e.d5421=0,e.d5433=0,e.dedt=0,e.del1=0,e.del2=0,e.del3=0,e.didt=0,e.dmdt=0,e.dnodt=0,e.domdt=0,e.e3=0,e.ee2=0,e.peo=0,e.pgho=0,e.pho=0,e.pinco=0,e.plo=0,e.se2=0,e.se3=0,e.sgh2=0,e.sgh3=0,e.sgh4=0,e.sh2=0,e.sh3=0,e.si2=0,e.si3=0,e.sl2=0,e.sl3=0,e.sl4=0,e.gsto=0,e.xfact=0,e.xgh2=0,e.xgh3=0,e.xgh4=0,e.xh2=0,e.xh3=0,e.xi2=0,e.xi3=0,e.xl2=0,e.xl3=0,e.xl4=0,e.xlamo=0,e.zmol=0,e.zmos=0,e.atime=0,e.xli=0,e.xni=0,e.bstar=Mo,e.ecco=fo,e.argpo=uo,e.inclo=zo,e.mo=vo,e.no=yo,e.nodeo=bo,e.operationmode=po;e.init="y",e.t=0;var qo=function(o){var e=o.ecco,s=o.epoch,a=o.inclo,n=o.opsmode,d=o.no,i=e*e,c=1-i,m=Math.sqrt(c),l=Math.cos(a),p=l*l,g=Math.pow(r/d,x),M=.75*h*(3*p-1)/(m*c),f=M/(g*g),u=g*(1-f*f-f*(1/3+134*f*f/81));d/=1+(f=M/(u*u));var z,y=Math.pow(r/d,x),b=Math.sin(a),q=y*c,w=1-5*p,T=-w-p-p,j=1/y,E=q*q,F=y*(1-e);if("a"===n){var A=s-7305,C=Math.floor(A+1e-8),L=.017202791694070362;(z=(1.7321343856509375+L*C+(L+t)*(A-C)+A*A*5075514194322695e-30)%t)<0&&(z+=t)}else z=v(s+2433281.5);return{no:d,method:"n",ainv:j,ao:y,con41:T,con42:w,cosio:l,cosio2:p,eccsq:i,omeosq:c,posq:E,rp:F,rteosq:m,sinio:b,gsto:z}}({satn:xo,ecco:e.ecco,epoch:go,inclo:e.inclo,no:e.no,method:e.method,opsmode:e.operationmode}),wo=qo.ao,To=qo.con42,jo=qo.cosio,Eo=qo.cosio2,Fo=qo.eccsq,Ao=qo.omeosq,Co=qo.posq,Lo=qo.rp,So=qo.rteosq,Uo=qo.sinio;if(e.no=qo.no,e.con41=qo.con41,e.gsto=qo.gsto,e.a=Math.pow(e.no*c,-2/3),e.alta=e.a*(1+e.ecco)-1,e.altp=e.a*(1-e.ecco)-1,e.error=0,Ao>=0||e.no>=0){if(e.isimp=0,Lo<1.034492841559484&&(e.isimp=1),_=1.0122292801892716,L=1.880279159015271e-9,(F=(Lo-1)*d)<156){_=F-78,F<98&&(_=20);var Do=(120-_)/d;L=Do*Do*Do*Do,_=_/d+1}A=1/Co,to=1/(wo-_),e.eta=wo*e.ecco*to,T=e.eta*e.eta,w=e.ecco*e.eta,C=Math.abs(1-T),m=(f=(M=L*Math.pow(to,4))/Math.pow(C,3.5))*e.no*(wo*(1+1.5*T+w*(4+T))+.375*h*to/C*e.con41*(8+3*T*(8+T))),e.cc1=e.bstar*m,g=0,e.ecco>1e-4&&(g=-2*M*to*p*e.no*Uo/e.ecco),e.x1mth2=1-Eo,e.cc4=2*e.no*f*wo*Ao*(e.eta*(2+.5*T)+e.ecco*(.5+2*T)-h*to/(wo*C)*(-3*e.con41*(1-2*w+T*(1.5-.5*w))+.75*e.x1mth2*(2*T-w*(1+T))*Math.cos(2*e.argpo))),e.cc5=2*f*wo*Ao*(1+2.75*(T+w)+w*T),z=Eo*Eo,X=.5*(W=1.5*h*A*e.no)*h*A,oo=-.46875*l*A*A*e.no,e.mdot=e.no+.5*W*So*e.con41+.0625*X*So*(13-78*Eo+137*z),e.argpdot=-.5*W*To+.0625*X*(7-114*Eo+395*z)+oo*(3-36*Eo+49*z),so=-W*jo,e.nodedot=so+(.5*X*(4-19*Eo)+2*oo*(3-7*Eo))*jo,eo=e.argpdot+e.nodedot,e.omgcof=e.bstar*g*Math.cos(e.argpo),e.xmcof=0,e.ecco>1e-4&&(e.xmcof=-x*M*e.bstar/w),e.nodecf=3.5*Ao*so*e.cc1,e.t2cof=1.5*e.cc1,Math.abs(jo+1)>15e-13?e.xlcof=-.25*p*Uo*(3+5*jo)/(1+jo):e.xlcof=-.25*p*Uo*(3+5*jo)/15e-13,e.aycof=-.5*p*Uo;var Io=1+e.eta*Math.cos(e.mo);if(e.delmo=Io*Io*Io,e.sinmao=Math.sin(e.mo),e.x7thm1=7*Eo-1,2*o/e.no>=225){e.method="d",e.isimp=1,0,j=e.inclo;var Ro=function(o){var e,s,a,n,d,r,i,c,h,m,l,p,x,g,M,f,u,z,v,y,b,q,w,T,j,E,F,A,C,L,S,U,D,I,R,_,k,O,P,Z,G,H,Y,$,B,J,K,N,Q,V,W,X,oo,to,eo,so,ao,no,ro,io,co,ho,mo,lo=o.epoch,po=o.ep,xo=o.argpp,go=o.tc,Mo=o.inclp,fo=o.nodep,uo=.01675,zo=.0549,vo=o.np,yo=po,bo=Math.sin(fo),qo=Math.cos(fo),wo=Math.sin(xo),To=Math.cos(xo),jo=Math.sin(Mo),Eo=Math.cos(Mo),Fo=yo*yo,Ao=1-Fo,Co=Math.sqrt(Ao),Lo=lo+18261.5+go/1440,So=(4.523602-.00092422029*Lo)%t,Uo=Math.sin(So),Do=Math.cos(So),Io=.91375164-.03568096*Do,Ro=Math.sqrt(1-Io*Io),_o=.089683511*Uo/Ro,ko=Math.sqrt(1-_o*_o),Oo=5.8351514+.001944368*Lo,Po=.39785416*Uo/Ro,Zo=ko*Do+.91744867*_o*Uo;Po=Math.atan2(Po,Zo),Po+=Oo-So;var Go=Math.cos(Po),Ho=Math.sin(Po);y=.1945905,b=-.98088458,T=.91744867,j=.39785416,q=qo,w=bo,l=29864797e-13;for(var Yo=1/vo,$o=0;$o<2;)eo=-6*(e=y*q+b*T*w)*(d=-jo*(i=-y*w+b*T*q)+Eo*(c=b*j))+Fo*(-24*(p=e*To+(s=Eo*i+jo*c)*wo)*(z=d*To)-6*(g=-e*wo+s*To)*(f=d*wo)),so=-6*(e*(r=-jo*(h=b*w+y*T*q)+Eo*(m=y*j))+(a=-b*q+y*T*w)*d)+Fo*(-24*((x=a*To+(n=Eo*h+jo*m)*wo)*z+p*(v=r*To))+-6*(g*(u=r*wo)+(M=-a*wo+n*To)*f)),ao=-6*a*r+Fo*(-24*x*v-6*M*u),no=6*s*d+Fo*(24*p*f-6*g*z),ro=6*(n*d+s*r)+Fo*(24*(x*f+p*u)-6*(M*z+g*v)),io=6*n*r+Fo*(24*x*u-6*M*v),X=(X=3*(e*e+s*s)+(co=12*p*p-3*g*g)*Fo)+X+Ao*co,oo=(oo=6*(e*a+s*n)+(ho=24*p*x-6*g*M)*Fo)+oo+Ao*ho,to=(to=3*(a*a+n*n)+(mo=12*x*x-3*M*M)*Fo)+to+Ao*mo,J=-.5*(K=l*Yo)/Co,B=-15*yo*(N=K*Co),Q=p*g+x*M,V=x*g+p*M,W=x*M-p*g,1===($o+=1)&&(E=B,F=J,A=K,C=N,L=Q,S=V,U=W,D=X,I=oo,R=to,_=eo,k=so,O=ao,P=no,Z=ro,G=io,H=co,Y=ho,$=mo,y=Go,b=Ho,T=Io,j=Ro,q=ko*qo+_o*bo,w=bo*ko-qo*_o,l=4.7968065e-7);return{snodm:bo,cnodm:qo,sinim:jo,cosim:Eo,sinomm:wo,cosomm:To,day:Lo,e3:2*B*W,ee2:2*B*V,em:yo,emsq:Fo,gam:Oo,peo:0,pgho:0,pho:0,pinco:0,plo:0,rtemsq:Co,se2:2*E*S,se3:2*E*U,sgh2:2*C*Y,sgh3:2*C*($-H),sgh4:-18*C*uo,sh2:-2*F*Z,sh3:-2*F*(G-P),si2:2*F*k,si3:2*F*(O-_),sl2:-2*A*I,sl3:-2*A*(R-D),sl4:-2*A*(-21-9*Fo)*uo,s1:B,s2:J,s3:K,s4:N,s5:Q,s6:V,s7:W,ss1:E,ss2:F,ss3:A,ss4:C,ss5:L,ss6:S,ss7:U,sz1:D,sz2:I,sz3:R,sz11:_,sz12:k,sz13:O,sz21:P,sz22:Z,sz23:G,sz31:H,sz32:Y,sz33:$,xgh2:2*N*ho,xgh3:2*N*(mo-co),xgh4:-18*N*zo,xh2:-2*J*ro,xh3:-2*J*(io-no),xi2:2*J*so,xi3:2*J*(ao-eo),xl2:-2*K*oo,xl3:-2*K*(to-X),xl4:-2*K*(-21-9*Fo)*zo,nm:vo,z1:X,z2:oo,z3:to,z11:eo,z12:so,z13:ao,z21:no,z22:ro,z23:io,z31:co,z32:ho,z33:mo,zmol:(.2299715*Lo-Oo+4.7199672)%t,zmos:(6.2565837+.017201977*Lo)%t}}({epoch:go,ep:e.ecco,argpp:e.argpo,tc:0,inclp:e.inclo,nodep:e.nodeo,np:e.no,e3:e.e3,ee2:e.ee2,peo:e.peo,pgho:e.pgho,pho:e.pho,pinco:e.pinco,plo:e.plo,se2:e.se2,se3:e.se3,sgh2:e.sgh2,sgh3:e.sgh3,sgh4:e.sgh4,sh2:e.sh2,sh3:e.sh3,si2:e.si2,si3:e.si3,sl2:e.sl2,sl3:e.sl3,sl4:e.sl4,xgh2:e.xgh2,xgh3:e.xgh3,xgh4:e.xgh4,xh2:e.xh2,xh3:e.xh3,xi2:e.xi2,xi3:e.xi3,xl2:e.xl2,xl3:e.xl3,xl4:e.xl4,zmol:e.zmol,zmos:e.zmos});e.e3=Ro.e3,e.ee2=Ro.ee2,e.peo=Ro.peo,e.pgho=Ro.pgho,e.pho=Ro.pho,e.pinco=Ro.pinco,e.plo=Ro.plo,e.se2=Ro.se2,e.se3=Ro.se3,e.sgh2=Ro.sgh2,e.sgh3=Ro.sgh3,e.sgh4=Ro.sgh4,e.sh2=Ro.sh2,e.sh3=Ro.sh3,e.si2=Ro.si2,e.si3=Ro.si3,e.sl2=Ro.sl2,e.sl3=Ro.sl3,e.sl4=Ro.sl4,n=Ro.sinim,a=Ro.cosim,b=Ro.em,q=Ro.emsq,S=Ro.s1,U=Ro.s2,D=Ro.s3,I=Ro.s4,R=Ro.s5,k=Ro.ss1,O=Ro.ss2,P=Ro.ss3,Z=Ro.ss4,G=Ro.ss5,H=Ro.sz1,Y=Ro.sz3,$=Ro.sz11,B=Ro.sz13,J=Ro.sz21,K=Ro.sz23,N=Ro.sz31,Q=Ro.sz33,e.xgh2=Ro.xgh2,e.xgh3=Ro.xgh3,e.xgh4=Ro.xgh4,e.xh2=Ro.xh2,e.xh3=Ro.xh3,e.xi2=Ro.xi2,e.xi3=Ro.xi3,e.xl2=Ro.xl2,e.xl3=Ro.xl3,e.xl4=Ro.xl4,e.zmol=Ro.zmol,e.zmos=Ro.zmos,E=Ro.nm,ao=Ro.z1,no=Ro.z3,ro=Ro.z11,io=Ro.z13,co=Ro.z21,ho=Ro.z23,mo=Ro.z31,lo=Ro.z33;var _o=u(e,{inclo:j,init:e.init,ep:e.ecco,inclp:e.inclo,nodep:e.nodeo,argpp:e.argpo,mp:e.mo,opsmode:e.operationmode});e.ecco=_o.ep,e.inclo=_o.inclp,e.nodeo=_o.nodep,e.argpo=_o.argpp,e.mo=_o.mp,0,0,0;var ko=function(e){var s,a,n,d,i,c,h,m,l,p,g,M,f,u,z,v,y,b=e.cosim,q=e.argpo,w=e.s1,T=e.s2,j=e.s3,E=e.s4,F=e.s5,A=e.sinim,C=e.ss1,L=e.ss2,S=e.ss3,U=e.ss4,D=e.ss5,I=e.sz1,R=e.sz3,_=e.sz11,k=e.sz13,O=e.sz21,P=e.sz23,Z=e.sz31,G=e.sz33,H=e.t,Y=e.tc,$=e.gsto,B=e.mo,J=e.mdot,K=e.no,N=e.nodeo,Q=e.nodedot,V=e.xpidot,W=e.z1,X=e.z3,oo=e.z11,to=e.z13,eo=e.z21,so=e.z23,ao=e.z31,no=e.z33,ro=e.ecco,io=e.eccsq,co=e.emsq,ho=e.em,mo=e.argpm,lo=e.inclm,po=e.mm,xo=e.nm,go=e.nodem,Mo=e.irez,fo=e.atime,uo=e.d2201,zo=e.d2211,vo=e.d3210,yo=e.d3222,bo=e.d4410,qo=e.d4422,wo=e.d5220,To=e.d5232,jo=e.d5421,Eo=e.d5433,Fo=e.dedt,Ao=e.didt,Co=e.dmdt,Lo=e.dnodt,So=e.domdt,Uo=e.del1,Do=e.del2,Io=e.del3,Ro=e.xfact,_o=e.xlamo,ko=e.xli,Oo=e.xni,Po=.0043752690880113,Zo=.00015835218,Go=119459e-10;Mo=0,xo<.0052359877&&xo>.0034906585&&(Mo=1),xo>=.00826&&xo<=.00924&&ho>=.5&&(Mo=2);var Ho=-Go*L*(O+P);(lo<.052359877||lo>o-.052359877)&&(Ho=0),0!==A&&(Ho/=A);var Yo=-Zo*T*(eo+so);(lo<.052359877||lo>o-.052359877)&&(Yo=0),So=U*Go*(Z+G-6)-b*Ho+E*Zo*(ao+no-6),Lo=Ho,0!==A&&(So-=b/A*Yo,Lo+=Yo/A);var $o=($+Y*Po)%t;if(ho+=(Fo=C*Go*D+w*Zo*F)*H,lo+=(Ao=L*Go*(_+k)+T*Zo*(oo+to))*H,mo+=So*H,go+=Lo*H,po+=(Co=-Go*S*(I+R-14-6*co)-Zo*j*(W+X-14-6*co))*H,0!==Mo){if(z=Math.pow(xo/r,x),2===Mo){var Bo=ho,Jo=co;y=(ho=ro)*(co=io),ho<=.65?(n=3.616-13.247*ho+16.29*co,d=117.39*ho-19.302-228.419*co+156.591*y,i=109.7927*ho-18.9068-214.6334*co+146.5816*y,c=242.694*ho-41.122-471.094*co+313.953*y,h=841.88*ho-146.407-1629.014*co+1083.435*y,m=3017.977*ho-532.114-5740.032*co+3708.276*y):(n=331.819*ho-72.099-508.738*co+266.724*y,d=1582.851*ho-346.844-2415.925*co+1246.113*y,i=1554.908*ho-342.585-2366.899*co+1215.972*y,c=4758.686*ho-1052.797-7193.992*co+3651.957*y,h=16178.11*ho-3581.69-24462.77*co+12422.52*y,m=ho>.715?29936.92*ho-5149.66-54087.36*co+31324.56*y:1464.74-4664.75*ho+3763.64*co),ho<.7?(g=4988.61*ho-919.2277-9064.77*co+5542.21*y,l=4568.6173*ho-822.71072-8491.4146*co+5337.524*y,p=4690.25*ho-853.666-8624.77*co+5341.4*y):(g=161616.52*ho-37995.78-229838.2*co+109377.94*y,l=218913.95*ho-51752.104-309468.16*co+146349.42*y,p=170470.89*ho-40023.88-242699.48*co+115605.82*y),uo=(f=17891679e-13*(u=xo*xo*3*(z*z)))*(s=.75*(1+2*b+(v=b*b)))*(-.306-.44*(ho-.64)),zo=f*(1.5*(M=A*A))*n,vo=(f=3.7393792e-7*(u*=z))*(1.875*A*(1-2*b-3*v))*d,yo=f*(-1.875*A*(1+2*b-3*v))*i,bo=(f=2*(u*=z)*7.3636953e-9)*(35*M*s)*c,qo=f*(39.375*M*M)*h,wo=(f=1.1428639e-7*(u*=z))*(9.84375*A*(M*(1-2*b-5*v)+.33333333*(4*b-2+6*v)))*m,To=f*(A*(4.92187512*M*(-2-4*b+10*v)+6.56250012*(1+2*b-3*v)))*p,jo=(f=2*u*2.1765803e-9)*(29.53125*A*(2-8*b+v*(8*b-12+10*v)))*l,Eo=f*(29.53125*A*(-2-8*b+v*(12+8*b-10*v)))*g,_o=(B+N+N-($o+$o))%t,Ro=J+Co+2*(Q+Lo-Po)-K,ho=Bo,co=Jo}1===Mo&&(a=1+b,Do=2*(Uo=3*xo*xo*z*z)*(s=.75*(1+b)*(1+b))*(1+co*(.8125*co-2.5))*17891679e-13,Io=3*Uo*(a*=1.875*a*a)*(1+co*(6.60937*co-6))*2.2123015e-7*z,Uo=Uo*(.9375*A*A*(1+3*b)-.75*(1+b))*(d=1+2*co)*21460748e-13*z,_o=(B+N+q-$o)%t,Ro=J+V+Co+So+Lo-(K+Po)),ko=_o,Oo=K,fo=0,xo=K+0}return{em:ho,argpm:mo,inclm:lo,mm:po,nm:xo,nodem:go,irez:Mo,atime:fo,d2201:uo,d2211:zo,d3210:vo,d3222:yo,d4410:bo,d4422:qo,d5220:wo,d5232:To,d5421:jo,d5433:Eo,dedt:Fo,didt:Ao,dmdt:Co,dndt:0,dnodt:Lo,domdt:So,del1:Uo,del2:Do,del3:Io,xfact:Ro,xlamo:_o,xli:ko,xni:Oo}}({cosim:a,emsq:q,argpo:e.argpo,s1:S,s2:U,s3:D,s4:I,s5:R,sinim:n,ss1:k,ss2:O,ss3:P,ss4:Z,ss5:G,sz1:H,sz3:Y,sz11:$,sz13:B,sz21:J,sz23:K,sz31:N,sz33:Q,t:e.t,tc:0,gsto:e.gsto,mo:e.mo,mdot:e.mdot,no:e.no,nodeo:e.nodeo,nodedot:e.nodedot,xpidot:eo,z1:ao,z3:no,z11:ro,z13:io,z21:co,z23:ho,z31:mo,z33:lo,ecco:e.ecco,eccsq:Fo,em:b,argpm:0,inclm:j,mm:0,nm:E,nodem:0,irez:e.irez,atime:e.atime,d2201:e.d2201,d2211:e.d2211,d3210:e.d3210,d3222:e.d3222,d4410:e.d4410,d4422:e.d4422,d5220:e.d5220,d5232:e.d5232,d5421:e.d5421,d5433:e.d5433,dedt:e.dedt,didt:e.didt,dmdt:e.dmdt,dnodt:e.dnodt,domdt:e.domdt,del1:e.del1,del2:e.del2,del3:e.del3,xfact:e.xfact,xlamo:e.xlamo,xli:e.xli,xni:e.xni});e.irez=ko.irez,e.atime=ko.atime,e.d2201=ko.d2201,e.d2211=ko.d2211,e.d3210=ko.d3210,e.d3222=ko.d3222,e.d4410=ko.d4410,e.d4422=ko.d4422,e.d5220=ko.d5220,e.d5232=ko.d5232,e.d5421=ko.d5421,e.d5433=ko.d5433,e.dedt=ko.dedt,e.didt=ko.didt,e.dmdt=ko.dmdt,e.dnodt=ko.dnodt,e.domdt=ko.domdt,e.del1=ko.del1,e.del2=ko.del2,e.del3=ko.del3,e.xfact=ko.xfact,e.xlamo=ko.xlamo,e.xli=ko.xli,e.xni=ko.xni}1!==e.isimp&&(i=e.cc1*e.cc1,e.d2=4*wo*to*i,V=e.d2*to*e.cc1/3,e.d3=(17*wo+_)*V,e.d4=.5*V*wo*to*(221*wo+31*_)*e.cc1,e.t3cof=e.d2+2*i,e.t4cof=.25*(3*e.d3+e.cc1*(12*e.d2+10*i)),e.t5cof=.2*(3*e.d4+12*e.cc1*e.d3+6*e.d2*e.d2+15*i*(2*e.d2+i)))}y(e,0),e.init="n"}function q(o){return function(o){if(Array.isArray(o))return w(o)}(o)||function(o){if("undefined"!=typeof Symbol&&null!=o[Symbol.iterator]||null!=o["@@iterator"])return Array.from(o)}(o)||function(o,t){if(!o)return;if("string"==typeof o)return w(o,t);var e=Object.prototype.toString.call(o).slice(8,-1);"Object"===e&&o.constructor&&(e=o.constructor.name);if("Map"===e||"Set"===e)return Array.from(o);if("Arguments"===e||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(e))return w(o,t)}(o)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()}function w(o,t){(null==t||t>o.length)&&(t=o.length);for(var e=0,s=new Array(t);e<t;e++)s[e]=o[e];return s}function T(o){return o*s}function j(o){return o*e}function E(o){var t=o.longitude,e=o.latitude,s=o.height,a=6378.137,n=(a-6356.7523142)/a,d=2*n-n*n,r=a/Math.sqrt(1-d*(Math.sin(e)*Math.sin(e)));return{x:(r+s)*Math.cos(e)*Math.cos(t),y:(r+s)*Math.cos(e)*Math.sin(t),z:(r*(1-d)+s)*Math.sin(e)}}var F={constants:Object.freeze({__proto__:null,deg2rad:e,earthRadius:d,j2:h,j3:m,j3oj2:p,j4:l,minutesPerDay:a,mu:n,pi:o,rad2deg:s,tumin:c,twoPi:t,vkmpersec:i,x2o3:x,xke:r}),propagate:function(){for(var o=arguments.length,t=new Array(o),e=0;e<o;e++)t[e]=arguments[e];var s=t[0],n=Array.prototype.slice.call(t,1),d=f.apply(void 0,q(n)),r=(d-s.jdsatepoch)*a;return y(s,r)},sgp4:y,twoline2satrec:function(t,s){var a=1440/(2*o),n=0,d={error:0};d.satnum=t.substring(2,7),d.epochyr=parseInt(t.substring(18,20),10),d.epochdays=parseFloat(t.substring(20,32)),d.ndot=parseFloat(t.substring(33,43)),d.nddot=parseFloat(".".concat(parseInt(t.substring(44,50),10),"E").concat(t.substring(50,52))),d.bstar=parseFloat("".concat(t.substring(53,54),".").concat(parseInt(t.substring(54,59),10),"E").concat(t.substring(59,61))),d.inclo=parseFloat(s.substring(8,16)),d.nodeo=parseFloat(s.substring(17,25)),d.ecco=parseFloat(".".concat(s.substring(26,33))),d.argpo=parseFloat(s.substring(34,42)),d.mo=parseFloat(s.substring(43,51)),d.no=parseFloat(s.substring(52,63)),d.no/=a,d.inclo*=e,d.nodeo*=e,d.argpo*=e,d.mo*=e;var r=g(n=d.epochyr<57?d.epochyr+2e3:d.epochyr+1900,d.epochdays),i=r.mon,c=r.day,h=r.hr,m=r.minute,l=r.sec;return d.jdsatepoch=f(n,i,c,h,m,l),b(d,{opsmode:"i",satn:d.satnum,epoch:d.jdsatepoch-2433281.5,xbstar:d.bstar,xecco:d.ecco,xargpo:d.argpo,xinclo:d.inclo,xmo:d.mo,xno:d.no,xnodeo:d.nodeo}),d},gstime:v,jday:f,invjday:function(o,t){var e=o-2415019.5,s=e/365.25,a=1900+Math.floor(s),n=Math.floor(.25*(a-1901)),d=e-(365*(a-1900)+n)+1e-11;d<1&&(d=e-(365*((a-=1)-1900)+(n=Math.floor(.25*(a-1901)))));var r=g(a,d),i=r.mon,c=r.day,h=r.hr,m=r.minute,l=r.sec-864e-9;return t?[a,i,c,h,m,Math.floor(l)]:new Date(Date.UTC(a,i-1,c,h,m,Math.floor(l)))},dopplerFactor:function(o,t,e){var s=7292115e-11,a={x:t.x-o.x,y:t.y-o.y,z:t.z-o.z};a.w=Math.sqrt(Math.pow(a.x,2)+Math.pow(a.y,2)+Math.pow(a.z,2));var n=e.x+s*o.y,d=e.y-s*o.x,r=e.z,i=(a.x*n+a.y*d+a.z*r)/a.w;return 1+i/299792.458*(i>=0?1:-1)},radiansToDegrees:T,degreesToRadians:j,degreesLat:function(t){if(t<-o/2||t>o/2)throw new RangeError("Latitude radians must be in range [-pi/2; pi/2].");return T(t)},degreesLong:function(t){if(t<-o||t>o)throw new RangeError("Longitude radians must be in range [-pi; pi].");return T(t)},radiansLat:function(o){if(o<-90||o>90)throw new RangeError("Latitude degrees must be in range [-90; 90].");return j(o)},radiansLong:function(o){if(o<-180||o>180)throw new RangeError("Longitude degrees must be in range [-180; 180].");return j(o)},geodeticToEcf:E,eciToGeodetic:function(e,s){for(var a=6378.137,n=Math.sqrt(e.x*e.x+e.y*e.y),d=(a-6356.7523142)/a,r=2*d-d*d,i=Math.atan2(e.y,e.x)-s;i<-o;)i+=t;for(;i>o;)i-=t;for(var c,h=0,m=Math.atan2(e.z,Math.sqrt(e.x*e.x+e.y*e.y));h<20;)c=1/Math.sqrt(1-r*(Math.sin(m)*Math.sin(m))),m=Math.atan2(e.z+a*c*r*Math.sin(m),n),h+=1;return{longitude:i,latitude:m,height:n/Math.cos(m)-a*c}},eciToEcf:function(o,t){return{x:o.x*Math.cos(t)+o.y*Math.sin(t),y:o.x*-Math.sin(t)+o.y*Math.cos(t),z:o.z}},ecfToEci:function(o,t){return{x:o.x*Math.cos(t)-o.y*Math.sin(t),y:o.x*Math.sin(t)+o.y*Math.cos(t),z:o.z}},ecfToLookAngles:function(t,e){var s,a,n,d,r,i,c=function(o,t){var e=o.longitude,s=o.latitude,a=E(o),n=t.x-a.x,d=t.y-a.y,r=t.z-a.z;return{topS:Math.sin(s)*Math.cos(e)*n+Math.sin(s)*Math.sin(e)*d-Math.cos(s)*r,topE:-Math.sin(e)*n+Math.cos(e)*d,topZ:Math.cos(s)*Math.cos(e)*n+Math.cos(s)*Math.sin(e)*d+Math.sin(s)*r}}(t,e);return a=(s=c).topS,n=s.topE,d=s.topZ,r=Math.sqrt(a*a+n*n+d*d),i=Math.asin(d/r),{azimuth:Math.atan2(-n,a)+o,elevation:i,rangeSat:r}}};return F}));
+</script>
+<script>// ===== Look-angle engine (no DOM). Depends on global `satellite` (satellite.js 5.0.0) for SGP4 only. =====
+const LA = (() => {
+  const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  const WGS_A = 6378.137, WGS_F = 1 / 298.257223563, WGS_E2 = WGS_F * (2 - WGS_F);
+  const R_GEO = 42164.17;            // km, geostationary radius
+  const RE_SPH = 6378.137;           // km, spherical model for "simple" elevation
+  const C_KM_S = 299792.458;
+  const norm360 = a => ((a % 360) + 360) % 360;
+  const norm180 = a => { a = norm360(a); return a > 180 ? a - 360 : a; };
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const scl = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const len = a => Math.sqrt(dot(a, a));
+  const unit = a => scl(a, 1 / len(a));
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+  // Geodetic (deg, deg, km) -> ECEF km (WGS84)
+  function geo2ecef(lat, lon, h) {
+    const p = lat * D2R, l = lon * D2R, s = Math.sin(p), c = Math.cos(p);
+    const N = WGS_A / Math.sqrt(1 - WGS_E2 * s * s);
+    return [(N + h) * c * Math.cos(l), (N + h) * c * Math.sin(l), (N * (1 - WGS_E2) + h) * s];
+  }
+  // Local ENU basis at site
+  function enuBasis(lat, lon) {
+    const p = lat * D2R, l = lon * D2R, sp = Math.sin(p), cp = Math.cos(p), sl = Math.sin(l), cl = Math.cos(l);
+    return { e: [-sl, cl, 0], n: [-sp * cl, -sp * sl, cp], u: [cp * cl, cp * sl, sp] };
+  }
+  // Topocentric look from site to an ECEF point
+  function look(site, satEcef) {
+    const st = geo2ecef(site.lat, site.lon, site.h / 1000), B = enuBasis(site.lat, site.lon);
+    const d = sub(satEcef, st), rho = len(d);
+    const E = dot(d, B.e), N = dot(d, B.n), U = dot(d, B.u);
+    return { az: norm360(Math.atan2(E, N) * R2D), el: Math.asin(U / rho) * R2D, range: rho, enu: [E / rho, N / rho, U / rho], st, satEcef, B };
+  }
+  const geoNominalEcef = lonS => [R_GEO * Math.cos(lonS * D2R), R_GEO * Math.sin(lonS * D2R), 0];
+
+  // Spherical-earth textbook elevation (no flattening, no height, no refraction)
+  function simpleElevation(lat, lon, lonS) {
+    const cg = Math.cos(lat * D2R) * Math.cos((lonS - lon) * D2R), sg = Math.sqrt(1 - cg * cg);
+    return Math.atan2(cg - RE_SPH / R_GEO, sg) * R2D;
+  }
+  // ITU-R P.834 radio refraction (deg) for true elevation thetaDeg, site altitude hKm (0..3 km)
+  function refractionP834(thetaDeg, hKm) {
+    const t = Math.max(thetaDeg, -0.9), h = Math.min(Math.max(hKm, 0), 3);
+    return 1 / (1.314 + 0.6437 * t + 0.02869 * t * t + h * (0.2305 + 0.09428 * t + 0.01096 * t * t) + 0.008583 * h * h);
+  }
+  // Polarisation skew: angle of satellite V-pol (parallel to Earth axis) vs local vertical, in aperture plane.
+  // Positive = clockwise when looking from behind the dish toward the satellite.
+  function skew(L) {
+    const s = unit(sub(L.satEcef, L.st)), z = [0, 0, 1];
+    const vSt = unit(sub(L.B.u, scl(s, dot(L.B.u, s))));
+    const vSat = unit(sub(z, scl(s, dot(z, s))));
+    let a = Math.atan2(dot(cross(vSt, vSat), s), dot(vSt, vSat)) * R2D;
+    if (a > 90) a -= 180; else if (a <= -90) a += 180;   // polarisation is a line: 180 deg periodic
+    return a;
+  }
+  // Polar mount geometry in ENU (axis parallel to Earth axis)
+  function polar(site, L) {
+    const p = site.lat * D2R, s = L.enu;
+    const axis = [0, Math.cos(p), Math.sin(p)], m = [0, -Math.sin(p), Math.cos(p)], ex = [1, 0, 0];
+    const trueDecl = -Math.asin(dot(s, axis)) * R2D;           // tilt of boresight below equatorial-parallel plane
+    const hourAngle = Math.atan2(dot(s, ex), dot(s, m)) * R2D;  // + = east of meridian
+    const merid = look(site, geoNominalEcef(site.lon));
+    const fixedDecl = -Math.asin(dot(merid.enu, axis)) * R2D;
+    return { axisElev: Math.abs(site.lat), fixedDecl, trueDecl, declErr: trueDecl - fixedDecl, hourAngle, meridianEl: merid.el };
+  }
+  // Visible GEO arc limits (elevation = minEl) via bisection on nominal geometry
+  function arcLimits(site, minEl = 0) {
+    const f = dl => look(site, geoNominalEcef(site.lon + dl)).el - minEl;
+    if (f(0) < 0) return null;
+    const solve = sgn => { let a = 0, b = 90 * sgn; for (let i = 0; i < 60; i++) { const c = (a + b) / 2; (f(c) >= 0) ? a = c : b = c; } return norm180(site.lon + a); };
+    return { east: solve(1), west: solve(-1) };
+  }
+
+  // ---- Sun (Meeus low precision, ~0.01 deg) ----
+  function sunEcef(date) {
+    const jd = date.getTime() / 86400000 + 2440587.5, T = (jd - 2451545.0) / 36525;
+    const L0 = norm360(280.46646 + T * (36000.76983 + 0.0003032 * T));
+    const M = norm360(357.52911 + T * (35999.05029 - 0.0001537 * T)) * D2R;
+    const C = (1.914602 - T * (0.004817 + 0.000014 * T)) * Math.sin(M) + (0.019993 - 0.000101 * T) * Math.sin(2 * M) + 0.000289 * Math.sin(3 * M);
+    const om = (125.04 - 1934.136 * T) * D2R;
+    const lam = (L0 + C - 0.00569 - 0.00478 * Math.sin(om)) * D2R;
+    const eps = (23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60 + 0.00256 * Math.cos(om)) * D2R;
+    const ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)), dec = Math.asin(Math.sin(eps) * Math.sin(lam));
+    const gmst = satellite.gstime(date), ha = ra - gmst, AU = 149597870.7;
+    return [AU * Math.cos(dec) * Math.cos(ha), AU * Math.cos(dec) * Math.sin(ha), AU * Math.sin(dec)];
+  }
+  const sunLook = (site, date) => look(site, sunEcef(date));
+  // UTC day scan: times when sun azimuth == target azimuth
+  function sunAlign(site, dayUtc, targetAz) {
+    const out = []; let prev = null;
+    for (let mnt = 0; mnt <= 1440; mnt += 2) {
+      const t = new Date(dayUtc + mnt * 60000), d = norm180(sunLook(site, t).az - targetAz);
+      if (prev && Math.sign(d) !== Math.sign(prev.d) && Math.abs(d - prev.d) < 90) {
+        let a = prev.t.getTime(), b = t.getTime(), da = prev.d;
+        for (let i = 0; i < 30; i++) { const c = (a + b) / 2, dc = norm180(sunLook(site, new Date(c)).az - targetAz); if (Math.sign(dc) === Math.sign(da)) { a = c; da = dc; } else b = c; }
+        const tt = new Date((a + b) / 2); out.push({ t: tt, el: sunLook(site, tt).el });
+      }
+      prev = { t, d };
+    }
+    return out;
+  }
+
+  // ---- WMM2025 magnetic declination ----
+  const WMM = { epoch: 2025.0, valid: [2025.0, 2030.0], c: [] };
+  function wmmLoad(str) { WMM.c = str.split(';').map(r => r.split(',').map(Number)); }
+  function decimalYear(d) { const y = d.getUTCFullYear(), a = Date.UTC(y, 0, 1), b = Date.UTC(y + 1, 0, 1); return y + (d - a) / (b - a); }
+  function magDecl(lat, lon, hKm, date) {
+    const N = 12, dt = decimalYear(date) - WMM.epoch, a = 6371.2;
+    const g = [], hh = []; for (let n = 0; n <= N; n++) { g.push(new Array(N + 1).fill(0)); hh.push(new Array(N + 1).fill(0)); }
+    for (const [n, m, gnm, hnm, gd, hd] of WMM.c) { g[n][m] = gnm + dt * gd; hh[n][m] = hnm + dt * hd; }
+    const ecef = geo2ecef(lat, lon, hKm), r = len(ecef), latc = Math.asin(ecef[2] / r);
+    const th = Math.PI / 2 - latc, ct = Math.cos(th), st = Math.max(Math.sin(th), 1e-9), lm = lon * D2R;
+    const P = [], dP = [], S = [];
+    for (let n = 0; n <= N; n++) { P.push(new Array(N + 1).fill(0)); dP.push(new Array(N + 1).fill(0)); S.push(new Array(N + 1).fill(0)); }
+    P[0][0] = 1; S[0][0] = 1;
+    for (let n = 1; n <= N; n++) {
+      S[n][0] = S[n - 1][0] * (2 * n - 1) / n;
+      for (let m = 0; m <= n; m++) {
+        if (m > 0) S[n][m] = S[n][m - 1] * Math.sqrt((n - m + 1) * (m === 1 ? 2 : 1) / (n + m));
+        if (n === m) { P[n][m] = st * P[n - 1][m - 1]; dP[n][m] = st * dP[n - 1][m - 1] + ct * P[n - 1][m - 1]; }
+        else {
+          const K = n > 1 ? ((n - 1) ** 2 - m * m) / ((2 * n - 1) * (2 * n - 3)) : 0;
+          const p2 = n > 1 ? P[n - 2][m] : 0, d2 = n > 1 ? dP[n - 2][m] : 0;
+          P[n][m] = ct * P[n - 1][m] - K * p2; dP[n][m] = ct * dP[n - 1][m] - st * P[n - 1][m] - K * d2;
+        }
+      }
+    }
+    let X = 0, Y = 0, Z = 0;
+    for (let n = 1; n <= N; n++) {
+      const ar = (a / r) ** (n + 2);
+      for (let m = 0; m <= n; m++) {
+        const cm = Math.cos(m * lm), sm = Math.sin(m * lm), Pn = P[n][m] * S[n][m], dPn = dP[n][m] * S[n][m];
+        X += ar * (g[n][m] * cm + hh[n][m] * sm) * dPn;
+        Y += ar * m * (g[n][m] * sm - hh[n][m] * cm) * Pn / st;
+        Z -= ar * (n + 1) * (g[n][m] * cm + hh[n][m] * sm) * Pn;
+      }
+    }
+    const psi = latc - lat * D2R, Xg = X * Math.cos(psi) - Z * Math.sin(psi);
+    return Math.atan2(Y, Xg) * R2D;
+  }
+
+  // ---- TLE ----
+  function parseTLE(text) {
+    const L = text.split(/\r?\n/).map(s => s.trimEnd()).filter(s => s.length), out = [];
+    for (let i = 0; i < L.length; i++) {
+      if (L[i].startsWith('1 ') && L[i + 1] && L[i + 1].startsWith('2 ')) {
+        const name = (i > 0 && !L[i - 1].startsWith('1 ') && !L[i - 1].startsWith('2 ')) ? L[i - 1].replace(/^0 /, '').trim() : 'NORAD ' + L[i].slice(2, 7).trim();
+        try { const rec = satellite.twoline2satrec(L[i], L[i + 1]); if (!rec.error) out.push({ name, id: L[i].slice(2, 7).trim(), l1: L[i], l2: L[i + 1], rec, incl: rec.inclo * R2D }); } catch (e) { }
+        i++;
+      }
+    }
+    return out;
+  }
+  function tleEpoch(rec) { const y = rec.epochyr < 57 ? 2000 + rec.epochyr : 1900 + rec.epochyr; return new Date(Date.UTC(y, 0, 1) + (rec.epochdays - 1) * 86400000); }
+  function satEcef(rec, date) {
+    const pv = satellite.propagate(rec, date); if (!pv || !pv.position) return null;
+    const e = satellite.eciToEcf(pv.position, satellite.gstime(date)); return [e.x, e.y, e.z];
+  }
+  function subPoint(ecef) { const r = len(ecef); return { lon: Math.atan2(ecef[1], ecef[0]) * R2D, lat: Math.asin(ecef[2] / r) * R2D, alt: r - WGS_A }; }
+  // 24 h pointing excursion for station-keeping / inclined orbit check
+  function excursion(site, rec, t0, hours = 24, stepMin = 10) {
+    const pts = [];
+    for (let k = 0; k <= hours * 60 / stepMin; k++) { const t = new Date(t0.getTime() + k * stepMin * 60000), e = satEcef(rec, t); if (e) { const L = look(site, e); pts.push({ t, az: L.az, el: L.el }); } }
+    if (!pts.length) return null;
+    const az0 = pts[0].az, daz = pts.map(p => norm180(p.az - az0));
+    const els = pts.map(p => p.el);
+    return { pts, azPP: Math.max(...daz) - Math.min(...daz), elPP: Math.max(...els) - Math.min(...els) };
+  }
+
+  // ---- Full solution ----
+  function solve(site, sat, date) {
+    const ecef = sat.ecef, L = look(site, ecef);
+    const refr = L.el > -1 ? refractionP834(L.el, site.h / 1000) : 0;
+    const decl = site.magVar;
+    const azMag = norm360(L.az - decl);
+    return {
+      azTrue: L.az, azMag, azGon: azMag * 400 / 360, elGeo: L.el, elApp: L.el + refr, refr,
+      elSimple: sat.lonNominal != null ? simpleElevation(site.lat, site.lon, sat.lonNominal) : null,
+      range: L.range, delay1: L.range / C_KM_S * 1000, delay2: 2 * L.range / C_KM_S * 1000,
+      skew: skew(L), polar: polar(site, L), mountEl: L.el + refr - site.offset, sun: sunLook(site, date), L
+    };
+  }
+  return { D2R, R2D, norm180, norm360, geo2ecef, look, geoNominalEcef, simpleElevation, refractionP834, skew, polar, arcLimits, sunEcef, sunLook, sunAlign, wmmLoad, magDecl, decimalYear, WMM, parseTLE, tleEpoch, satEcef, subPoint, excursion, solve };
+})();
+</script>
+<script>// ===== UI strings (Turkish / English). T(key, {var}) ; static DOM: data-t, data-tp (placeholder), data-ta (aria-label) =====
+const I18N = {
+  en: {
+    tagline: 'Antenna look angles to geostationary satellites',
+    az: 'Azimuth', azSub: 'true north', el: 'Elevation', elSub: 'with refraction', skew: 'LNB skew',
+    compass: 'Compass {v}', geom: 'Geometric {v}', dishSet: 'Dish set {v}', magGon: 'Magnetic {v} · {g} gon', geomRefr: 'Geometric {g} + refraction {r}',
+    range: 'Range', delay: 'Delay ↑↓', motor: 'Motor', cw: 'clockwise', ccw: 'counter-clockwise', cwS: '↻ clockwise', ccwS: '↺ counter-cw', fromBehind: '{d} from behind', noRot: 'no rotation',
+    belowHorizon: 'below horizon', visible: 'visible', selectSat: 'Select satellite', tapToChoose: 'Tap to choose', checkCoords: 'Check the site coordinates in Settings',
+    locating: 'Locating…', loadingData: 'Loading data…', noData: 'No orbital data', satsAge: '{n} sats · {a} old',
+    myLocAcc: 'My location ±{m} m · {h}', settings: 'Settings', satellite: 'Satellite', done: 'Done',
+    globe: 'Globe', sky: 'Sky', recenter: 'Recenter', legendVis: 'visible from here', legendHid: 'not visible', legendYou: 'you',
+    globeHint: 'Not to scale · drag to rotate · pinch or scroll to zoom · double-tap to recenter · tap a satellite to select it',
+    skyAria: 'Sky dial: azimuth around, elevation inward', globeAria: '3D globe with the geostationary belt, satellites and your position',
+    pointStart: 'Start pointing aid', pointStop: 'Stop pointing aid', turn: 'Turn', tilt: 'Tilt', turnRight: 'Turn right', turnLeft: 'Turn left', tiltUp: 'Tilt up', tiltDown: 'Tilt down',
+    onTarget: 'on target', holdUpright: 'hold upright', aimNote: 'Hold the phone upright and aim the back camera at the sky.',
+    compassWarn: 'Phone compass is a coarse aid (typ. ±5°, worse near metal). Stand a few metres from the dish, then peak on signal.',
+    noCompass: 'This device reports no compass heading; only elevation is shown.', camAim: 'Camera aim {a}° / {e}° (true). Target {ta}° / {te}°.',
+    flatAim: 'Phone flat: top edge heading {a}° true. Hold upright to measure elevation.', noSensors: 'Pointing aid unavailable: this device has no orientation sensors.',
+    waitSensors: 'Waiting for sensors… move the phone in a figure-8 to calibrate the compass.', noOriData: 'No orientation data from the sensors.', noOriPerm: ' Motion permission was not granted — allow Motion & Orientation access in browser settings.',
+    srcTle: 'NORAD TLE', srcSlot: 'Orbital slot', search: 'Search name or NORAD ID', visOnly: 'Visible from here only', slotLon: 'Longitude (°, + East, − West)',
+    noMatch: 'No match.', noTle: 'No TLE data. Use Orbital slot, or load a TLE file in Settings.', azEl: 'az / el', nominal: 'nominal', slotName: 'Orbital slot',
+    location: 'Location', myLoc: 'My location', otherLoc: 'Another location', placeSearch: 'Search a place or type coordinates', placeHolder: 'e.g. Gölbaşı, Ankara  or  39.78, 32.81',
+    saved: 'Saved locations', lat: 'Latitude', lon: 'Longitude', hgt: 'Height (m)', off: 'Dish offset angle (°)', coordHint: 'Decimal or DMS (39 55 20 N). Typing coordinates switches to Another location.',
+    demBtn: 'Get terrain height', saveSite: 'Save this location', siteName: 'Name, e.g. Gölbaşı station', save: 'Save', mag: 'Magnetic declination (°, + East)', magAuto: 'From WMM2025',
+    time: 'Time (UTC)', live: 'Live (now)', orbData: 'Orbital data', checkUpd: 'Check for update', loadFile: 'Load TLE file', appearance: 'Appearance', language: 'Language',
+    theme: 'Theme', themeAuto: 'Auto', themeLight: 'Light', themeDark: 'Dark',
+    waitGps: 'Waiting for GPS…', noGeo: 'This browser has no location service.', usingName: 'Using “{n}”.', usingCoords: 'Using the coordinates below. Search a place, pick a saved location or type coordinates.',
+    permDenied: 'Location permission denied — allow it in the browser/app settings, or choose another location below.', noFix: 'No GPS fix yet, still trying…', locUnavail: 'Location unavailable: {m}',
+    fixInfo: 'Fix ±{m} m, {a} ago · {h}', hGps: '{v} m GPS', hDem: '{v} m terrain', hManual: 'height: manual',
+    noneSaved: 'None yet. Pick or type a location, then “Save this location”. You can also save your current GPS position.', useCoords: 'Use coordinates {a}, {b}', latlon: 'lat, lon',
+    searching: 'Searching…', noPlace: 'No place found. Try another spelling, or type coordinates.', needNet: 'Place search needs internet. You can still type coordinates (e.g. 39.78, 32.81).',
+    demLook: 'Looking up terrain height…', demOk: 'Terrain height {h} m (Copernicus DEM).', demFail: 'Terrain height lookup failed (offline?). Enter the height manually.',
+    savedOk: 'Saved “{n}”.', savedGps: ' Switch to Another location to use it later.', mySite: 'My site {d}', siteN: 'Site {n}', del: 'Delete {n}',
+    lastDl: 'Last download was {a} ago; CelesTrak allows one per 2 h.', dlFail: 'Download failed ({m}). Using cached data.', noTleYet: 'No TLE data yet. Use an orbital slot or load a TLE file.',
+    dataFrom: '{n} GEO element sets from {s}, downloaded {a} ago.', srcServer: 'the daily server update', srcCt: 'CelesTrak (direct)', checking: 'Checking…', badFile: 'No valid TLE sets in that file.',
+    gPointing: 'Pointing', gPath: 'Path', gPolar: 'Polar mount / DiSEqC', gSun: 'Sun', gOrbit: 'Orbit (TLE)', gElev: 'Elevation and path', gPol: 'Polarisation (fixed antenna)',
+    trueAz: 'True azimuth', compAz: 'Compass azimuth', compGon: 'Compass (400 gon)', magDecl: 'Magnetic declination', appEl: 'Apparent elevation', geoEl: 'Geometric elevation (WGS84)',
+    refr: 'Refraction (ITU-R P.834)', mount: 'Dish mount setting', skewBehind: 'Skew, from behind dish', skewFacing: 'Skew, facing the LNB', slant: 'Slant range', oneWay: 'One-way delay',
+    upDown: 'Up + down, same site', simpleEl: 'Simple elevation (nominal)', polAxis: 'Polar axis elevation', fixDecl: 'Fixed declination', trueDecl: 'True declination', declErr: 'Declination error',
+    motorAng: 'Motor angle', visArc: 'Visible arc', none: 'none', sunNow: 'Sun now az / el', sunOnSat: 'Sun on satellite azimuth (local)', sunUtc: 'Sun on satellite azimuth (UTC)', sunElThen: 'Sun elevation then',
+    notToday: 'not today', night: 'night', tleAge: 'TLE epoch age', incl: 'Inclination', subLat: 'Sub-satellite latitude', subPt: 'Sub-satellite point', alt: 'Altitude', exc: '24 h excursion az / el',
+    noradId: 'NORAD ID', epoch: 'TLE epoch', excTitle: '24 h pointing track (deviation from now)', fullScale: '±{v}° full scale', skewV: 'Skew, vertical pol.', skewH: 'Skew, horizontal pol.', fromH: '{v} from horizontal',
+    magUsed: 'Magnetic declination used', wmm: 'WMM2025', manual: 'manual', sameLocal: 'Same, local ({z})',
+    foot: 'WGS84 + SGP4 (satellite.js 5.0.0) · ITU-R P.834 refraction · WMM2025 declination · Land: Natural Earth · Orbital data: CelesTrak · Terrain height and place search: Open-Meteo (Copernicus DEM GLO-90, GeoNames).',
+    // desktop
+    site: 'Site', devLoc: 'Device location', manualLoc: 'Manual', hgtSea: 'Height above sea (m)', listHead: ['Name', 'NORAD', 'Lon', 'El'], shownOf: '{a} of {b} shown, sorted east → west',
+    slotHint: 'Nominal geostationary position (r = 42 164 km, zero inclination).', srcUrl: 'Source URL', refreshNow: 'Refresh now', clearCache: 'Clear cache', orLoad: 'Or load a TLE file (.txt / .tle, 3-line format)',
+    orPaste: 'Or paste TLE text', usePaste: 'Use pasted TLEs', dataBox: 'Orbital data (CelesTrak / NORAD)', details: 'Details',
+    dlHint: 'Downloaded at most once every 24 h and cached. CelesTrak updates GP data about every 2 h and blocks repeated downloads, so manual refresh is locked for 2 h after a download.',
+    siteHint: 'Lat/lon accept decimal (−33.9) or DMS (39 55 20 N, 32°51′35″E). Typing a value switches to Manual. GPS height is above the WGS84 ellipsoid, terrain (DEM) height above sea level; the ~30–40 m difference moves the angles by less than 0.001°.',
+    waitPerm: 'Waiting for location permission / first fix…', manualKept: 'Manual site. The last device fix stays in the fields until you edit them.', manualSite: 'Manual site.',
+    fixDesk: 'Fix ±{m} m · {a} ago · height {h}', permDesk: 'Location permission denied (or blocked by this page’s sandbox). Using the manual site.', timeoutDesk: 'No location fix yet (timeout); still trying.',
+    hGpsAcc: '{v} m from GPS (±{a} m)', hDemDesk: '{v} m terrain (DEM)', hLook: 'looking up terrain height…', hFail: 'unavailable; terrain lookup failed (retrying in 60 s) — or enter it manually',
+    downloading: 'Downloading…', stNoTle: 'No TLE data — load a file or use an orbital slot', stCt: 'CelesTrak', stLoaded: 'loaded {s}', stAuto: 'auto refresh in {a}', stLiveNa: ' · live download unavailable', stLastFail: ' · last CelesTrak attempt failed, using cache',
+    dlLauncher: '{n} element sets, downloaded from CelesTrak {a} ago and cached by the launcher.', lastErr: 'Last error: {e}', dlDirect: 'Downloaded {n} element sets.', launcherFail: 'Launcher could not get TLEs: {m}',
+    corsFail: 'Download failed ({m}). The browser blocked the request (sandboxed page or CORS). Run the launcher (lookangles.py), or load/paste a TLE file below.', launcherUrl: 'Running under the launcher: the source URL is set with --tle-url and data is cached on disk (max. one CelesTrak download per 24 h).',
+    cleared: 'Cache cleared.', loadedFrom: 'Loaded {n} element sets from {f}.', loadedN: 'Loaded {n} element sets.', badPaste: 'No valid TLE sets found in the pasted text.', fromFile: 'from file', pasted: 'pasted',
+    north: 'N', east: 'E', south: 'S', west: 'W', sun: 'Sun', min: 'min', hr: 'h', day: 'd'
+  },
+  tr: {
+    tagline: 'Yer sabit uydulara anten bakış açıları',
+    az: 'Azimut', azSub: 'coğrafi kuzey', el: 'Elevasyon', elSub: 'kırılma dahil', skew: 'LNB açısı',
+    compass: 'Pusula {v}', geom: 'Geometrik {v}', dishSet: 'Çanak ayarı {v}', magGon: 'Manyetik {v} · {g} gon', geomRefr: 'Geometrik {g} + kırılma {r}',
+    range: 'Mesafe', delay: 'Gecikme ↑↓', motor: 'Motor', cw: 'saat yönünde', ccw: 'saat yönü tersine', cwS: '↻ saat yönü', ccwS: '↺ ters yön', fromBehind: 'arkadan bakınca {d}', noRot: 'döndürme yok',
+    belowHorizon: 'ufkun altında', visible: 'görünür', selectSat: 'Uydu seçin', tapToChoose: 'Seçmek için dokunun', checkCoords: 'Ayarlar’dan konum koordinatlarını kontrol edin',
+    locating: 'Konum alınıyor…', loadingData: 'Veri yükleniyor…', noData: 'Yörünge verisi yok', satsAge: '{n} uydu · {a} önce',
+    myLocAcc: 'Konumum ±{m} m · {h}', settings: 'Ayarlar', satellite: 'Uydu', done: 'Tamam',
+    globe: 'Küre', sky: 'Gökyüzü', recenter: 'Ortala', legendVis: 'buradan görünür', legendHid: 'görünmez', legendYou: 'siz',
+    globeHint: 'Ölçeksiz · döndürmek için sürükleyin · yakınlaştırmak için iki parmak veya tekerlek · ortalamak için çift dokunun · seçmek için uyduya dokunun',
+    skyAria: 'Gökyüzü kadranı: çevrede azimut, içe doğru elevasyon', globeAria: 'Yer sabit kuşak, uydular ve konumunuzla 3B küre',
+    pointStart: 'Yönlendirme yardımını başlat', pointStop: 'Yönlendirme yardımını durdur', turn: 'Dön', tilt: 'Eğ', turnRight: 'Sağa dön', turnLeft: 'Sola dön', tiltUp: 'Yukarı kaldır', tiltDown: 'Aşağı indir',
+    onTarget: 'hedefte', holdUpright: 'dik tutun', aimNote: 'Telefonu dik tutun ve arka kamerayı gökyüzüne doğrultun.',
+    compassWarn: 'Telefon pusulası kaba bir yardımcıdır (tipik ±5°, metal yakınında daha kötü). Çanaktan birkaç metre uzakta durun, sonra sinyale göre ince ayar yapın.',
+    noCompass: 'Bu cihaz pusula yönü vermiyor; yalnızca elevasyon gösteriliyor.', camAim: 'Kamera yönü {a}° / {e}° (coğrafi). Hedef {ta}° / {te}°.',
+    flatAim: 'Telefon yatay: üst kenar yönü {a}° (coğrafi). Elevasyon için dik tutun.', noSensors: 'Yönlendirme yardımı kullanılamıyor: cihazda yön sensörü yok.',
+    waitSensors: 'Sensörler bekleniyor… pusulayı kalibre etmek için telefonu 8 çizerek hareket ettirin.', noOriData: 'Sensörlerden yön verisi gelmiyor.', noOriPerm: ' Hareket izni verilmedi — tarayıcı ayarlarından Hareket ve Yön erişimine izin verin.',
+    srcTle: 'NORAD TLE', srcSlot: 'Yörünge slotu', search: 'Ad veya NORAD ID ara', visOnly: 'Yalnızca buradan görünenler', slotLon: 'Boylam (°, + Doğu, − Batı)',
+    noMatch: 'Eşleşme yok.', noTle: 'TLE verisi yok. Yörünge slotu kullanın veya Ayarlar’dan TLE dosyası yükleyin.', azEl: 'az / el', nominal: 'nominal', slotName: 'Yörünge slotu',
+    location: 'Konum', myLoc: 'Konumum', otherLoc: 'Başka konum', placeSearch: 'Yer arayın veya koordinat yazın', placeHolder: 'örn. Gölbaşı, Ankara  veya  39.78, 32.81',
+    saved: 'Kayıtlı konumlar', lat: 'Enlem', lon: 'Boylam', hgt: 'Yükseklik (m)', off: 'Ofset çanak açısı (°)', coordHint: 'Ondalık veya DMS (39 55 20 N). Koordinat yazmak Başka konum’a geçirir.',
+    demBtn: 'Arazi yüksekliğini al', saveSite: 'Bu konumu kaydet', siteName: 'Ad, örn. Gölbaşı istasyonu', save: 'Kaydet', mag: 'Manyetik sapma (°, + Doğu)', magAuto: 'WMM2025’ten hesapla',
+    time: 'Zaman (UTC)', live: 'Canlı (şimdi)', orbData: 'Yörünge verisi', checkUpd: 'Güncellemeyi denetle', loadFile: 'TLE dosyası yükle', appearance: 'Görünüm', language: 'Dil',
+    theme: 'Tema', themeAuto: 'Otomatik', themeLight: 'Açık', themeDark: 'Koyu',
+    waitGps: 'GPS bekleniyor…', noGeo: 'Bu tarayıcıda konum servisi yok.', usingName: '“{n}” kullanılıyor.', usingCoords: 'Aşağıdaki koordinatlar kullanılıyor. Yer arayın, kayıtlı konum seçin veya koordinat yazın.',
+    permDenied: 'Konum izni reddedildi — tarayıcı/uygulama ayarlarından izin verin veya aşağıdan başka konum seçin.', noFix: 'Henüz GPS konumu yok, deneniyor…', locUnavail: 'Konum alınamıyor: {m}',
+    fixInfo: 'Konum ±{m} m, {a} önce · {h}', hGps: '{v} m GPS', hDem: '{v} m arazi', hManual: 'yükseklik: elle',
+    noneSaved: 'Henüz yok. Bir konum seçin veya yazın, sonra “Bu konumu kaydet”. Mevcut GPS konumunuzu da kaydedebilirsiniz.', useCoords: '{a}, {b} koordinatlarını kullan', latlon: 'enlem, boylam',
+    searching: 'Aranıyor…', noPlace: 'Yer bulunamadı. Başka yazım deneyin veya koordinat girin.', needNet: 'Yer araması internet gerektirir. Koordinat yine de yazabilirsiniz (örn. 39.78, 32.81).',
+    demLook: 'Arazi yüksekliği sorgulanıyor…', demOk: 'Arazi yüksekliği {h} m (Copernicus DEM).', demFail: 'Arazi yüksekliği alınamadı (çevrimdışı?). Yüksekliği elle girin.',
+    savedOk: '“{n}” kaydedildi.', savedGps: ' Daha sonra kullanmak için Başka konum’a geçin.', mySite: 'Konumum {d}', siteN: 'Konum {n}', del: '{n} sil',
+    lastDl: 'Son indirme {a} önceydi; CelesTrak 2 saatte bir izin veriyor.', dlFail: 'İndirme başarısız ({m}). Önbellekteki veri kullanılıyor.', noTleYet: 'Henüz TLE verisi yok. Yörünge slotu kullanın veya TLE dosyası yükleyin.',
+    dataFrom: '{n} GEO yörünge seti, kaynak: {s}, {a} önce indirildi.', srcServer: 'günlük sunucu güncellemesi', srcCt: 'CelesTrak (doğrudan)', checking: 'Denetleniyor…', badFile: 'Dosyada geçerli TLE seti yok.',
+    gPointing: 'Yönlendirme', gPath: 'Yol', gPolar: 'Polar montaj / DiSEqC', gSun: 'Güneş', gOrbit: 'Yörünge (TLE)', gElev: 'Elevasyon ve yol', gPol: 'Polarizasyon (sabit anten)',
+    trueAz: 'Coğrafi azimut', compAz: 'Pusula azimutu', compGon: 'Pusula (400 gon)', magDecl: 'Manyetik sapma', appEl: 'Görünür elevasyon', geoEl: 'Geometrik elevasyon (WGS84)',
+    refr: 'Kırılma (ITU-R P.834)', mount: 'Çanak montaj ayarı', skewBehind: 'LNB, çanak arkasından', skewFacing: 'LNB, LNB’ye bakarken', slant: 'Eğik mesafe', oneWay: 'Tek yön gecikme',
+    upDown: 'Çıkış + iniş, aynı yer', simpleEl: 'Basit elevasyon (nominal)', polAxis: 'Polar eksen elevasyonu', fixDecl: 'Sabit deklinasyon', trueDecl: 'Gerçek deklinasyon', declErr: 'Deklinasyon hatası',
+    motorAng: 'Motor açısı', visArc: 'Görünür yay', none: 'yok', sunNow: 'Güneş şimdi az / el', sunOnSat: 'Güneş uydu azimutunda (yerel)', sunUtc: 'Güneş uydu azimutunda (UTC)', sunElThen: 'O andaki güneş elevasyonu',
+    notToday: 'bugün yok', night: 'gece', tleAge: 'TLE yaşı', incl: 'Eğim', subLat: 'Uydu-altı enlem', subPt: 'Uydu-altı nokta', alt: 'İrtifa', exc: '24 sa salınım az / el',
+    noradId: 'NORAD ID', epoch: 'TLE dönemi', excTitle: '24 saatlik yönlendirme izi (şimdiye göre sapma)', fullScale: 'tam ölçek ±{v}°', skewV: 'LNB açısı, dikey pol.', skewH: 'LNB açısı, yatay pol.', fromH: 'yataydan {v}',
+    magUsed: 'Kullanılan manyetik sapma', wmm: 'WMM2025', manual: 'elle', sameLocal: 'Aynısı, yerel ({z})',
+    foot: 'WGS84 + SGP4 (satellite.js 5.0.0) · ITU-R P.834 kırılma · WMM2025 manyetik sapma · Kara verisi: Natural Earth · Yörünge verisi: CelesTrak · Arazi yüksekliği ve yer arama: Open-Meteo (Copernicus DEM GLO-90, GeoNames).',
+    site: 'Konum', devLoc: 'Cihaz konumu', manualLoc: 'Elle', hgtSea: 'Deniz seviyesinden yükseklik (m)', listHead: ['Ad', 'NORAD', 'Boylam', 'El'], shownOf: '{b} uydudan {a} gösteriliyor, doğudan batıya',
+    slotHint: 'Nominal yer sabit konum (r = 42 164 km, sıfır eğim).', srcUrl: 'Kaynak URL', refreshNow: 'Şimdi yenile', clearCache: 'Önbelleği temizle', orLoad: 'Veya TLE dosyası yükleyin (.txt / .tle, 3 satır biçimi)',
+    orPaste: 'Veya TLE metni yapıştırın', usePaste: 'Yapıştırılan TLE’leri kullan', dataBox: 'Yörünge verisi (CelesTrak / NORAD)', details: 'Ayrıntılar',
+    dlHint: 'En fazla 24 saatte bir indirilir ve önbelleğe alınır. CelesTrak verisi yaklaşık 2 saatte bir güncellenir ve tekrarlı indirmeleri engeller; bu yüzden elle yenileme indirmeden sonra 2 saat kilitlidir.',
+    siteHint: 'Enlem/boylam ondalık (−33.9) veya DMS (39 55 20 N, 32°51′35″E) kabul eder. Değer yazmak Elle moduna geçirir. GPS yüksekliği WGS84 elipsoidine, arazi (DEM) yüksekliği deniz seviyesine göredir; ~30–40 m fark açıları 0.001°’den az değiştirir.',
+    waitPerm: 'Konum izni / ilk konum bekleniyor…', manualKept: 'Elle konum. Son cihaz konumu siz düzenleyene kadar alanlarda kalır.', manualSite: 'Elle konum.',
+    fixDesk: 'Konum ±{m} m · {a} önce · yükseklik {h}', permDesk: 'Konum izni reddedildi (veya sayfa sandbox’ı engelledi). Elle konum kullanılıyor.', timeoutDesk: 'Henüz konum yok (zaman aşımı); deneniyor.',
+    hGpsAcc: 'GPS’ten {v} m (±{a} m)', hDemDesk: '{v} m arazi (DEM)', hLook: 'arazi yüksekliği sorgulanıyor…', hFail: 'alınamadı; arazi sorgusu başarısız (60 sn’de tekrar) — veya elle girin',
+    downloading: 'İndiriliyor…', stNoTle: 'TLE verisi yok — dosya yükleyin veya yörünge slotu kullanın', stCt: 'CelesTrak', stLoaded: '{s} yüklendi', stAuto: '{a} sonra otomatik yenileme', stLiveNa: ' · canlı indirme kullanılamıyor', stLastFail: ' · son CelesTrak denemesi başarısız, önbellek kullanılıyor',
+    dlLauncher: '{n} yörünge seti, {a} önce CelesTrak’tan indirildi ve başlatıcı tarafından önbelleğe alındı.', lastErr: 'Son hata: {e}', dlDirect: '{n} yörünge seti indirildi.', launcherFail: 'Başlatıcı TLE alamadı: {m}',
+    corsFail: 'İndirme başarısız ({m}). Tarayıcı isteği engelledi (sandbox veya CORS). Başlatıcıyı (lookangles.py) çalıştırın veya aşağıdan TLE dosyası yükleyin/yapıştırın.', launcherUrl: 'Başlatıcı altında çalışıyor: kaynak URL --tle-url ile ayarlanır ve veri diskte önbelleğe alınır (24 saatte en fazla bir CelesTrak indirmesi).',
+    cleared: 'Önbellek temizlendi.', loadedFrom: '{f} dosyasından {n} yörünge seti yüklendi.', loadedN: '{n} yörünge seti yüklendi.', badPaste: 'Yapıştırılan metinde geçerli TLE seti yok.', fromFile: 'dosyadan', pasted: 'yapıştırıldı',
+    north: 'K', east: 'D', south: 'G', west: 'B', sun: 'Güneş', min: 'dk', hr: 'sa', day: 'g'
+  }
+};
+const T = (k, v) => { const d = I18N[T.lang] || I18N.en; let s = d[k] != null ? d[k] : (I18N.en[k] != null ? I18N.en[k] : k); if (v && typeof s === 'string') s = s.replace(/\{(\w+)\}/g, (m, n) => v[n] != null ? v[n] : m); return s; };
+T.lang = /^tr/i.test(navigator.language || '') ? 'tr' : 'en';
+T.apply = root => {
+  (root || document).querySelectorAll('[data-t]').forEach(e => { e.textContent = T(e.dataset.t); });
+  (root || document).querySelectorAll('[data-tp]').forEach(e => { e.placeholder = T(e.dataset.tp); });
+  (root || document).querySelectorAll('[data-ta]').forEach(e => { e.setAttribute('aria-label', T(e.dataset.ta)); });
+  document.documentElement.lang = T.lang;
+};
+</script>
+<script>// ===== 3D globe (canvas 2D, no dependencies) =====
+// Earth as a dotted sphere (Natural Earth 1:110m land mask), day/night from the sun direction,
+// the geostationary belt as a ring (stylised radius, not to scale) with every NORAD GEO object,
+// the observer's position and a sight line to the selected satellite.
+// Coordinates are ECEF unit vectors (x: 0°E, y: 90°E, z: north).
+const Globe = (() => {
+  const D2R = Math.PI / 180, RING = 1.85, CAM = 9;
+  const PAL = {
+    glow: 'rgba(80,200,255,', oceanLit: '#12385a', oceanMid: '#0b2440', oceanDark: '#050d1b',
+    dayDot: ['#e9fff4', '#b8f5d0', '#7fd8b0', '#4f9c86', '#2f5f66', '#1e3d52'],
+    ring: 'rgba(150,190,230,', arc: '#7ee2a8', satVis: '#8ff0c0', satHid: 'rgba(140,160,190,.45)',
+    sel: '#ffffff', selGlow: 'rgba(126,226,168,', site: '#ffcf5a', line: 'rgba(255,207,90,'
+  };
+
+  function decodeLand(txt) {
+    return txt.split(';').map(r => { const v = r.split(',').map(Number), pts = [[v[0] / 10, v[1] / 10]]; let x = v[0], y = v[1]; for (let i = 2; i < v.length; i += 2) { x += v[i]; y += v[i + 1]; pts.push([x / 10, y / 10]); } return pts; });
+  }
+  // Even-ish dots on the sphere that fall on land (equirectangular raster mask).
+  function landDots(rings, n) {
+    const W = 1440, H = 720, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'); g.fillStyle = '#000'; g.beginPath();
+    for (const r of rings) r.forEach(([lo, la], i) => { const x = (lo + 180) / 360 * W, y = (90 - la) / 180 * H; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.fill('evenodd');
+    const m = g.getImageData(0, 0, W, H).data, out = [], ga = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < n; i++) {
+      const z = 1 - 2 * (i + .5) / n, r = Math.sqrt(1 - z * z), a = i * ga, x = r * Math.cos(a), y = r * Math.sin(a);
+      const lon = Math.atan2(y, x) / D2R, lat = Math.asin(z) / D2R;
+      const px = Math.min(W - 1, Math.floor((lon + 180) / 360 * W)), py = Math.min(H - 1, Math.floor((90 - lat) / 180 * H));
+      if (m[(py * W + px) * 4 + 3] > 127) out.push(x, y, z);
+    }
+    return new Float32Array(out);
+  }
+  const unitLL = (lat, lon) => { const p = lat * D2R, l = lon * D2R; return [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)]; };
+
+  function create(canvas, opts = {}) {
+    const ctx = canvas.getContext('2d');
+    const dots = landDots(decodeLand(opts.land || ''), opts.dots || 24000);
+    const st = { yaw: 30 * D2R, pitch: 22 * D2R, k: 1, tYaw: null, tPitch: null, vy: 0, vp: 0 };
+    let data = { site: null, sats: [], selId: null, sun: [1, 0, 0], arc: null, label: '' };
+    let W = 0, H = 0, dpr = 1, F = 1, cx = 0, cy = 0, dirty = true, raf = 0, visible = true, t0 = performance.now(), hits = [];
+    let stars = [];
+
+    function resize() {
+      const b = canvas.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = Math.max(1, Math.round(b.width * dpr)); H = Math.max(1, Math.round(b.height * dpr));
+      if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+      cx = W / 2; cy = H / 2;
+      let s = 7; stars = []; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < Math.round(W * H / (2600 * dpr * dpr)); i++) stars.push([rnd() * W, rnd() * H, rnd()]);
+      dirty = true; kick();
+    }
+    // camera basis from yaw (longitude) / pitch (latitude) of the camera
+    function basis() {
+      const cyw = Math.cos(st.yaw), syw = Math.sin(st.yaw), cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+      return { r: [-syw, cyw, 0], u: [-sp * cyw, -sp * syw, cp], n: [cp * cyw, cp * syw, sp] };
+    }
+    function proj(B, p) {
+      const x = p[0] * B.r[0] + p[1] * B.r[1] + p[2] * B.r[2], y = p[0] * B.u[0] + p[1] * B.u[1] + p[2] * B.u[2], z = p[0] * B.n[0] + p[1] * B.n[1] + p[2] * B.n[2];
+      const s = F / (CAM - z); return [cx + x * s, cy - y * s, z, x, y];
+    }
+    // true when the segment camera -> point passes through the Earth
+    function hidden(q) {
+      const px = q[3], py = q[4], pz = q[2] - CAM, a = px * px + py * py + pz * pz, b = 2 * CAM * pz, c = CAM * CAM - 1, disc = b * b - 4 * a * c;
+      if (disc <= 0) return false; const t = (-b - Math.sqrt(disc)) / (2 * a); return t > 0 && t < 1;
+    }
+
+    function draw(now) {
+      raf = 0;
+      // easing toward a recenter target + drag inertia
+      let moving = false;
+      if (st.tYaw != null) { const dy = Math.atan2(Math.sin(st.tYaw - st.yaw), Math.cos(st.tYaw - st.yaw)), dp = st.tPitch - st.pitch; st.yaw += dy * .14; st.pitch += dp * .14; if (Math.abs(dy) + Math.abs(dp) < 1e-3) st.tYaw = st.tPitch = null; moving = true; }
+      if (!drag && (Math.abs(st.vy) > 1e-4 || Math.abs(st.vp) > 1e-4)) { st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); st.vy *= .93; st.vp *= .93; moving = true; }
+      F = Math.min(W, H) * .47 * CAM / RING * st.k / 1.08;
+      const B = basis(), R = F / Math.sqrt(CAM * CAM - 1), t = (now - t0) / 1000;
+      ctx.clearRect(0, 0, W, H);
+      // stars
+      for (const [x, y, a] of stars) { ctx.fillStyle = `rgba(220,235,255,${.15 + a * .45})`; ctx.fillRect(x, y, a > .85 ? 1.6 * dpr : dpr, a > .85 ? 1.6 * dpr : dpr); }
+      const ringPts = [], RS = 180;
+      for (let i = 0; i <= RS; i++) { const l = i / RS * 360 - 180; const q = proj(B, [RING * Math.cos(l * D2R), RING * Math.sin(l * D2R), 0]); q.lon = l; q.hid = hidden(q); ringPts.push(q); }
+      const sats = data.sats.map(s => { const q = proj(B, [s.d[0] * RING, s.d[1] * RING, s.d[2] * RING]); q.hid = hidden(q); q.s = s; return q; });
+      const inArc = l => { const a = data.arc; if (!a) return false; const w = a.west, e = a.east; return w <= e ? l >= w && l <= e : l >= w || l <= e; };
+      // pass 1: far side of the ring (the opaque Earth covers what it should)
+      ctx.lineWidth = 1.2 * dpr; ctx.strokeStyle = PAL.ring + '.18)'; ctx.beginPath(); ringPts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+      for (const q of sats) if (q.hid) { ctx.fillStyle = 'rgba(140,160,190,.18)'; ctx.fillRect(q[0] - dpr, q[1] - dpr, 2 * dpr, 2 * dpr); }
+      // atmosphere glow
+      const gl = ctx.createRadialGradient(cx, cy, R * .92, cx, cy, R * 1.28);
+      gl.addColorStop(0, PAL.glow + '.35)'); gl.addColorStop(.35, PAL.glow + '.12)'); gl.addColorStop(1, PAL.glow + '0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, R * 1.28, 0, 7); ctx.fill();
+      // ocean, lit toward the sun
+      const sc = [data.sun[0] * B.r[0] + data.sun[1] * B.r[1] + data.sun[2] * B.r[2], data.sun[0] * B.u[0] + data.sun[1] * B.u[1] + data.sun[2] * B.u[2], data.sun[0] * B.n[0] + data.sun[1] * B.n[1] + data.sun[2] * B.n[2]];
+      const lx = cx + sc[0] * R * .62, ly = cy - sc[1] * R * .62, oc = ctx.createRadialGradient(lx, ly, R * .05, cx - sc[0] * R * .2, cy + sc[1] * R * .2, R * 1.45);
+      const lit = Math.max(0, sc[2]) * .6 + .4;
+      oc.addColorStop(0, sc[2] > -0.6 ? PAL.oceanLit : PAL.oceanMid); oc.addColorStop(.45 * lit + .1, PAL.oceanMid); oc.addColorStop(1, PAL.oceanDark);
+      ctx.fillStyle = oc; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+      // land dots, bucketed by sun illumination
+      const buckets = PAL.dayDot.map(() => []), lim = 1 / CAM, sz = Math.max(1.1 * dpr, R / 135);
+      for (let i = 0; i < dots.length; i += 3) {
+        const x = dots[i], y = dots[i + 1], z = dots[i + 2], zz = x * B.n[0] + y * B.n[1] + z * B.n[2];
+        if (zz <= lim) continue;
+        const xx = x * B.r[0] + y * B.r[1], yy = x * B.u[0] + y * B.u[1] + z * B.u[2], s = F / (CAM - zz);
+        const sun = x * data.sun[0] + y * data.sun[1] + z * data.sun[2], lim2 = zz;   // limb darkening via zz
+        let b = sun > .35 ? 0 : sun > .12 ? 1 : sun > -.05 ? 2 : sun > -.2 ? 3 : 4; if (lim2 < .25) b = Math.min(5, b + 1);
+        buckets[b].push(cx + xx * s, cy - yy * s);
+      }
+      buckets.forEach((arr, b) => { if (!arr.length) return; ctx.fillStyle = PAL.dayDot[b]; ctx.beginPath(); for (let i = 0; i < arr.length; i += 2) ctx.rect(arr[i] - sz / 2, arr[i + 1] - sz / 2, sz, sz); ctx.fill(); });
+      // pass 3: near side of the ring, visible arc highlighted
+      ctx.lineCap = 'round';
+      for (let i = 1; i < ringPts.length; i++) {
+        const a = ringPts[i - 1], b = ringPts[i]; if (a.hid || b.hid) continue;
+        const on = inArc((a.lon + b.lon) / 2); ctx.strokeStyle = on ? PAL.arc : PAL.ring + (a[2] > 0 ? '.55)' : '.3)'); ctx.lineWidth = (on ? 2.4 : 1.2) * dpr;
+        ctx.globalAlpha = on ? .85 : 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      hits = [];
+      let selQ = null;
+      for (const q of sats) {
+        if (q.hid) continue; hits.push(q);
+        if (q.s.id === data.selId) { selQ = q; continue; }
+        const r = (q.s.vis ? 1.9 : 1.4) * dpr * (q[2] > 0 ? 1.1 : .9);
+        ctx.fillStyle = q.s.vis ? PAL.satVis : PAL.satHid; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fill();
+      }
+      // observer + sight line
+      let siteQ = null;
+      if (data.site) {
+        const u = unitLL(data.site.lat, data.site.lon); siteQ = proj(B, u); siteQ.front = siteQ[2] > lim;
+        if (selQ && !selQ.hid) {
+          const target = data.selDir || [selQ.s.d[0], selQ.s.d[1], selQ.s.d[2]], N = 40; let prev = null;
+          ctx.lineWidth = 2 * dpr;
+          for (let i = 0; i <= N; i++) {
+            const f = i / N, p = [u[0] + (target[0] * RING - u[0]) * f, u[1] + (target[1] * RING - u[1]) * f, u[2] + (target[2] * RING - u[2]) * f];
+            const q = proj(B, p), hid = i > 0 && hidden(q) && !(i === 0);
+            if (prev && !hid && !prev.hid) { ctx.strokeStyle = PAL.line + (.35 + .55 * f) + ')'; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+            q.hid = hid || (i === 0 && !siteQ.front); prev = q;
+          }
+        }
+        if (siteQ.front) {
+          const pulse = (t % 2) / 2;
+          ctx.strokeStyle = PAL.line + (0.7 * (1 - pulse)) + ')'; ctx.lineWidth = 1.5 * dpr; ctx.beginPath(); ctx.arc(siteQ[0], siteQ[1], (4 + 14 * pulse) * dpr, 0, 7); ctx.stroke();
+          ctx.fillStyle = PAL.site; ctx.beginPath(); ctx.arc(siteQ[0], siteQ[1], 4 * dpr, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#0a1424'; ctx.lineWidth = 1.5 * dpr; ctx.stroke();
+        }
+      }
+      if (selQ) {
+        const g2 = ctx.createRadialGradient(selQ[0], selQ[1], 0, selQ[0], selQ[1], 16 * dpr);
+        g2.addColorStop(0, PAL.selGlow + '.9)'); g2.addColorStop(1, PAL.selGlow + '0)');
+        ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(selQ[0], selQ[1], 16 * dpr, 0, 7); ctx.fill();
+        ctx.fillStyle = PAL.sel; ctx.beginPath(); ctx.arc(selQ[0], selQ[1], 4.2 * dpr, 0, 7); ctx.fill();
+        if (data.label) {
+          ctx.font = `600 ${12 * dpr}px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`;
+          const tw = ctx.measureText(data.label).width, pw = tw + 16 * dpr, ph = 22 * dpr;
+          let x = selQ[0] + 12 * dpr, y = selQ[1] - 30 * dpr; if (x + pw > W - 6 * dpr) x = selQ[0] - 12 * dpr - pw; if (y < 6 * dpr) y = selQ[1] + 10 * dpr;
+          ctx.fillStyle = 'rgba(8,18,32,.82)'; ctx.strokeStyle = 'rgba(126,226,168,.6)'; ctx.lineWidth = dpr;
+          rr(x, y, pw, ph, 11 * dpr); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#e9fff4'; ctx.textBaseline = 'middle'; ctx.fillText(data.label, x + 8 * dpr, y + ph / 2 + .5);
+        }
+      } else if (data.selDir) {   // orbital slot without a NORAD object: still show the target
+        const q = proj(B, [data.selDir[0] * RING, data.selDir[1] * RING, data.selDir[2] * RING]);
+        if (!hidden(q)) { ctx.fillStyle = PAL.sel; ctx.beginPath(); ctx.arc(q[0], q[1], 4.2 * dpr, 0, 7); ctx.fill(); }
+      }
+      if (moving || dirty) dirty = false;
+      if (visible && (moving || data.site)) kick();   // keep animating the site pulse while on screen
+    }
+    function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+    let lastFrame = 0;
+    function kick() { if (!raf) raf = requestAnimationFrame(now => { if (now - lastFrame < 50 && !drag && st.tYaw == null && Math.abs(st.vy) < 1e-4) { raf = 0; setTimeout(kick, 50 - (now - lastFrame)); return; } lastFrame = now; draw(now); }); }
+    const clampP = p => Math.max(-80 * D2R, Math.min(80 * D2R, p));
+
+    // ----- interaction -----
+    const ptrs = new Map(); let drag = false, down = null, pinch0 = null, lastTap = 0;
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', e => {
+      canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (ptrs.size === 1) { drag = true; down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false }; st.vy = st.vp = 0; st.tYaw = st.tPitch = null; }
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: st.k }; }
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!ptrs.has(e.pointerId)) return; const p = ptrs.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1];
+      ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; st.k = Math.max(.6, Math.min(2.6, pinch0.k * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch0.d)); down && (down.moved = true); kick(); return; }
+      if (!drag) return; if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) down.moved = true;
+      const sp = .0065 / st.k; st.vy = -dx * sp; st.vp = dy * sp; st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); kick();
+    });
+    const up = e => {
+      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null;
+      if (ptrs.size === 0) {
+        drag = false;
+        if (down && !down.moved && performance.now() - down.t < 350) {
+          const b = canvas.getBoundingClientRect(), x = (e.clientX - b.left) * dpr, y = (e.clientY - b.top) * dpr, nowT = performance.now();
+          if (nowT - lastTap < 320) { recenter(); lastTap = 0; } else {
+            lastTap = nowT; let best = null, bd = (22 * dpr) ** 2;
+            for (const q of hits) { const d = (q[0] - x) ** 2 + (q[1] - y) ** 2; if (d < bd) { bd = d; best = q; } }
+            if (best && opts.onPick) opts.onPick(best.s.id);
+          }
+        }
+        down = null; kick();
+      }
+    };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', e => { e.preventDefault(); st.k = Math.max(.6, Math.min(2.6, st.k * Math.exp(-e.deltaY * .0012))); kick(); }, { passive: false });
+
+    function recenter() {
+      if (!data.site) return;
+      st.tYaw = data.site.lon * D2R; st.tPitch = clampP((data.site.lat * .5 + (data.site.lat >= 0 ? 10 : -10)) * D2R); st.vy = st.vp = 0; kick();
+    }
+    function set(d) {
+      const first = !data.site && d.site;
+      data = Object.assign(data, d);
+      if (first) { st.yaw = d.site.lon * D2R; st.pitch = clampP((d.site.lat * .5 + (d.site.lat >= 0 ? 10 : -10)) * D2R); }
+      dirty = true; kick();
+    }
+    new ResizeObserver(resize).observe(canvas);
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting && !document.hidden; if (visible) kick(); }).observe(canvas);
+    document.addEventListener('visibilitychange', () => { visible = !document.hidden; if (visible) kick(); });
+    resize();
+    return { set, recenter, resize, zoom: f => { st.k = Math.max(.6, Math.min(2.6, st.k * f)); kick(); } };
+  }
+  return { create, unitLL };
+})();
+</script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const f = (v, d = 2) => (v == null || !isFinite(v)) ? '—' : v.toFixed(d);
+const ew = v => `${f(Math.abs(v), 1)}°${v >= 0 ? T('east') : T('west')}`;
+const deg = (v, d = 1) => `${f(v, d)}<sup>°</sup>`;
+const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
+const ago = ms => { const h = ms / 3600000; return h < 1 ? Math.max(0, Math.round(h * 60)) + ' ' + T('min') : h < 48 ? h.toFixed(1) + ' ' + T('hr') : Math.round(h / 24) + ' ' + T('day'); };
+LA.wmmLoad('1,0,-29351.8,0.0,12.0,0.0;1,1,-1410.8,4545.4,9.7,-21.5;2,0,-2556.6,0.0,-11.6,0.0;2,1,2951.1,-3133.6,-5.2,-27.7;2,2,1649.3,-815.1,-8.0,-12.1;3,0,1361.0,0.0,-1.3,0.0;3,1,-2404.1,-56.6,-4.2,4.0;3,2,1243.8,237.5,0.4,-0.3;3,3,453.6,-549.5,-15.6,-4.1;4,0,895.0,0.0,-1.6,0.0;4,1,799.5,278.6,-2.4,-1.1;4,2,55.7,-133.9,-6.0,4.1;4,3,-281.1,212.0,5.6,1.6;4,4,12.1,-375.6,-7.0,-4.4;5,0,-233.2,0.0,0.6,0.0;5,1,368.9,45.4,1.4,-0.5;5,2,187.2,220.2,0.0,2.2;5,3,-138.7,-122.9,0.6,0.4;5,4,-142.0,43.0,2.2,1.7;5,5,20.9,106.1,0.9,1.9;6,0,64.4,0.0,-0.2,0.0;6,1,63.8,-18.4,-0.4,0.3;6,2,76.9,16.8,0.9,-1.6;6,3,-115.7,48.8,1.2,-0.4;6,4,-40.9,-59.8,-0.9,0.9;6,5,14.9,10.9,0.3,0.7;6,6,-60.7,72.7,0.9,0.9;7,0,79.5,0.0,-0.0,0.0;7,1,-77.0,-48.9,-0.1,0.6;7,2,-8.8,-14.4,-0.1,0.5;7,3,59.3,-1.0,0.5,-0.8;7,4,15.8,23.4,-0.1,0.0;7,5,2.5,-7.4,-0.8,-1.0;7,6,-11.1,-25.1,-0.8,0.6;7,7,14.2,-2.3,0.8,-0.2;8,0,23.2,0.0,-0.1,0.0;8,1,10.8,7.1,0.2,-0.2;8,2,-17.5,-12.6,0.0,0.5;8,3,2.0,11.4,0.5,-0.4;8,4,-21.7,-9.7,-0.1,0.4;8,5,16.9,12.7,0.3,-0.5;8,6,15.0,0.7,0.2,-0.6;8,7,-16.8,-5.2,-0.0,0.3;8,8,0.9,3.9,0.2,0.2;9,0,4.6,0.0,-0.0,0.0;9,1,7.8,-24.8,-0.1,-0.3;9,2,3.0,12.2,0.1,0.3;9,3,-0.2,8.3,0.3,-0.3;9,4,-2.5,-3.3,-0.3,0.3;9,5,-13.1,-5.2,0.0,0.2;9,6,2.4,7.2,0.3,-0.1;9,7,8.6,-0.6,-0.1,-0.2;9,8,-8.7,0.8,0.1,0.4;9,9,-12.9,10.0,-0.1,0.1;10,0,-1.3,0.0,0.1,0.0;10,1,-6.4,3.3,0.0,0.0;10,2,0.2,0.0,0.1,-0.0;10,3,2.0,2.4,0.1,-0.2;10,4,-1.0,5.3,-0.0,0.1;10,5,-0.6,-9.1,-0.3,-0.1;10,6,-0.9,0.4,0.0,0.1;10,7,1.5,-4.2,-0.1,0.0;10,8,0.9,-3.8,-0.1,-0.1;10,9,-2.7,0.9,-0.0,0.2;10,10,-3.9,-9.1,-0.0,-0.0;11,0,2.9,0.0,0.0,0.0;11,1,-1.5,0.0,-0.0,-0.0;11,2,-2.5,2.9,0.0,0.1;11,3,2.4,-0.6,0.0,-0.0;11,4,-0.6,0.2,0.0,0.1;11,5,-0.1,0.5,-0.1,-0.0;11,6,-0.6,-0.3,0.0,-0.0;11,7,-0.1,-1.2,-0.0,0.1;11,8,1.1,-1.7,-0.1,-0.0;11,9,-1.0,-2.9,-0.1,0.0;11,10,-0.2,-1.8,-0.1,0.0;11,11,2.6,-2.3,-0.1,0.0;12,0,-2.0,0.0,0.0,0.0;12,1,-0.2,-1.3,0.0,-0.0;12,2,0.3,0.7,-0.0,0.0;12,3,1.2,1.0,-0.0,-0.1;12,4,-1.3,-1.4,-0.0,0.1;12,5,0.6,-0.0,-0.0,-0.0;12,6,0.6,0.6,0.1,-0.0;12,7,0.5,-0.1,-0.0,-0.0;12,8,-0.1,0.8,0.0,0.0;12,9,-0.4,0.1,0.0,-0.0;12,10,-0.2,-1.0,-0.1,-0.0;12,11,-1.3,0.1,-0.0,0.0;12,12,-0.7,0.2,-0.1,-0.1');
+const CELESTRAK = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=geo&FORMAT=tle', DAY = 86400000, MINREF = 2 * 3600000;
+const SLOTS = [['Türksat 42°E', 42], ['Türksat 31°E', 31], ['Türksat 50°E', 50], ['Hot Bird 13°E', 13], ['Astra 19.2°E', 19.2], ['Astra 23.5°E', 23.5], ['Astra 28.2°E', 28.2], ['Eutelsat 7°E', 7], ['Eutelsat 36°E', 36], ['Arabsat 26°E', 26], ['Hellas Sat 39°E', 39], ['Azerspace 46°E', 46], ['Nilesat 7°W', -7]];
+const st = Object.assign({ lat: '39.9334', lon: '32.8597', hgt: 938, off: 0, magAuto: true, mag: 0, src: 'tle', slot: 42, sel: null, visOnly: true, loc: 'gps', siteName: '', lang: null, theme: 'auto', view: 'globe' }, LS.get('la.m.settings') || {});
+if (st.lang) T.lang = st.lang;
+let sats = [], pos = new Map(), meta = null, dataErr = '', fix = null, dem = null, demBusy = false, watchId = null, last = null;
+
+function parseAngle(s, p, n) { s = String(s).trim().toUpperCase(); if (!s) return NaN; let sg = (s.includes(n) || s.startsWith('-')) ? -1 : 1; const a = s.replace(/[^\d.]+/g, ' ').trim().split(/\s+/).map(Number); return isNaN(a[0]) ? NaN : sg * (a[0] + (a[1] || 0) / 60 + (a[2] || 0) / 3600); }
+function now() { if ($('live').checked) return new Date(); const v = $('tm').value; return v ? new Date(v + ':00Z') : new Date(); }
+function site(d) {
+  const lat = parseAngle($('lat').value, 'N', 'S'), lon = parseAngle($('lon').value, 'E', 'W'), h = +$('hgt').value || 0;
+  if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) return null;
+  return { lat, lon, h, offset: +$('off').value || 0, magVar: $('magAuto').checked ? LA.magDecl(lat, lon, h / 1000, d) : (+$('mag').value || 0) };
+}
+function save() { Object.assign(st, { lat: $('lat').value, lon: $('lon').value, hgt: $('hgt').value, off: $('off').value, magAuto: $('magAuto').checked, mag: $('mag').value, slot: $('slot').value, visOnly: $('visOnly').checked }); LS.set('la.m.settings', st); }
+
+// ---------- appearance ----------
+function applyTheme() {
+  const t = st.theme, dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  $('themeMeta').content = dark ? '#070b14' : '#eef2f8';
+  for (const [id, v] of [['thAuto', 'auto'], ['thLight', 'light'], ['thDark', 'dark']]) $(id).setAttribute('aria-pressed', st.theme === v);
+}
+function applyLang() {
+  T.apply(); $('lngTr').setAttribute('aria-pressed', T.lang === 'tr'); $('lngEn').setAttribute('aria-pressed', T.lang === 'en');
+  $('pointTxt').textContent = T(aim.on ? 'pointStop' : 'pointStart');
+}
+
+// ---------- orbital data ----------
+function useText(text, m) {
+  const list = LA.parseTLE(text); if (!list.length) return false;
+  sats = list.sort((a, b) => a.name.localeCompare(b.name)); meta = m; LS.set('la.m.tle', { text, ...m });
+  computeAll();
+  if (!st.sel || !sats.find(s => s.id === st.sel)) { let t = sats.find(s => /TURKSAT 4A/.test(s.name)); if (!t) { let be = -99; for (const q of sats) { const p = pos.get(q.id); if (p && p.el > be) { be = p.el; t = q; } } } st.sel = (t || sats[0]).id; save(); }
+  return true;
+}
+async function loadData(force) {
+  try {   // 1) file published next to the app by the daily GitHub Action
+    const r = await fetch('data/geo.tle', { cache: 'no-cache' });
+    if (r.ok) {
+      const t = await r.text(); let at = Date.now();
+      try { const m = await (await fetch('data/meta.json', { cache: 'no-cache' })).json(); at = Date.parse(m.fetched) || at; } catch (e) { }
+      if (!meta || meta.src !== 'server' || at !== meta.at || !sats.length) { if (useText(t, { at, src: 'server' })) { dataErr = ''; renderAll(); return; } } else { dataErr = ''; renderAll(); return; }
+    }
+  } catch (e) { }
+  const age = meta && meta.src === 'celestrak' ? Date.now() - meta.at : Infinity;   // 2) direct CelesTrak, max once per 24 h
+  if (!force && age < DAY) return renderAll();
+  if (force && age < MINREF) { dataErr = T('lastDl', { a: ago(age) }); return renderAll(); }
+  try {
+    const r = await fetch(CELESTRAK, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (!useText(await r.text(), { at: Date.now(), src: 'celestrak' })) throw new Error('no TLE sets in response');
+    dataErr = '';
+  } catch (e) { dataErr = T('dlFail', { m: e.message || e }); }
+  renderAll();
+}
+function dataStatus() {
+  const dot = $('dataDot'), txt = $('dataTxt');
+  if (!meta) { dot.className = 'dot bad'; txt.textContent = T('noData'); $('dataMsg').textContent = dataErr || T('noTleYet'); return; }
+  const age = Date.now() - meta.at; dot.className = 'dot ' + (age < 1.5 * DAY ? 'ok' : 'wait');
+  txt.textContent = T('satsAge', { n: sats.length, a: ago(age) });
+  $('dataMsg').className = 'msg' + (dataErr ? ' bad' : '');
+  $('dataMsg').textContent = T('dataFrom', { n: sats.length, s: meta.src === 'server' ? T('srcServer') : meta.src === 'celestrak' ? T('srcCt') : meta.src, a: ago(age) }) + (dataErr ? ' ' + dataErr : '');
+}
+
+// ---------- location ----------
+function setLoc(mode) {
+  st.loc = mode; save(); $('locGps').setAttribute('aria-pressed', mode === 'gps'); $('locMan').setAttribute('aria-pressed', mode === 'manual'); $('otherPane').hidden = mode !== 'manual'; if (mode === 'manual') renderSaved();
+  if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if (mode === 'gps') {
+    if (!navigator.geolocation) { locMsg(T('noGeo'), true); return setLoc('manual'); }
+    locMsg(T('waitGps')); watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 });
+  } else locMsg(st.siteName ? T('usingName', { n: st.siteName }) : T('usingCoords'));
+  gpsStatus();
+}
+function locMsg(t, bad) { $('locMsg').className = 'msg' + (bad ? ' bad' : ''); $('locMsg').textContent = t; }
+function onPos(p) {
+  if (st.loc !== 'gps') return; const c = p.coords;
+  fix = { lat: c.latitude, lon: c.longitude, acc: c.accuracy, at: Date.now(), alt: fix ? fix.alt : '…' };
+  $('lat').value = c.latitude.toFixed(6); $('lon').value = c.longitude.toFixed(6);
+  if (c.altitude != null && isFinite(c.altitude) && (c.altitudeAccuracy == null || c.altitudeAccuracy <= 30)) { $('hgt').value = Math.round(c.altitude); fix.alt = T('hGps', { v: Math.round(c.altitude) }); }
+  else terrain(c.latitude, c.longitude);
+  save(); computeAll(); renderAll();
+}
+function onPosErr(e) { if (e.code === 1) { setLoc('manual'); locMsg(T('permDenied'), true); } else locMsg(e.code === 3 ? T('noFix') : T('locUnavail', { m: e.message }), true); gpsStatus(); }
+async function terrain(lat, lon) {
+  const dist = dem ? 6371000 * Math.hypot((lon - dem.lon) * LA.D2R * Math.cos(lat * LA.D2R), (lat - dem.lat) * LA.D2R) : 1e9;
+  if (dist < 60) { $('hgt').value = Math.round(dem.h); fix.alt = T('hDem', { v: Math.round(dem.h) }); return; }
+  if (demBusy) return; demBusy = true;
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat.toFixed(5)}&longitude=${lon.toFixed(5)}`); if (!r.ok) throw 0;
+    const h = +((await r.json()).elevation || [])[0]; if (!isFinite(h)) throw 0;
+    dem = { lat, lon, h }; if (st.loc === 'gps') { $('hgt').value = Math.round(h); if (fix) fix.alt = T('hDem', { v: Math.round(h) }); save(); renderAll(); }
+  } catch (e) { if (fix) fix.alt = T('hManual'); setTimeout(() => { if (st.loc === 'gps' && fix && !dem) terrain(fix.lat, fix.lon); }, 60000); }
+  demBusy = false; gpsStatus();
+}
+function gpsStatus() {
+  const dot = $('gpsDot'), txt = $('gpsTxt');
+  if (st.loc !== 'gps') { const s = site(new Date()); dot.className = 'dot'; txt.textContent = st.siteName ? st.siteName : s ? `${f(Math.abs(s.lat), 3)}°${s.lat >= 0 ? T('north') : T('south')} ${f(Math.abs(s.lon), 3)}°${s.lon >= 0 ? T('east') : T('west')}` : T('otherLoc'); return; }
+  if (!fix) { dot.className = 'dot wait'; txt.textContent = T('locating'); return; }
+  const age = Date.now() - fix.at; dot.className = 'dot ' + (fix.acc <= 50 && age < 60000 ? 'ok' : 'wait');
+  txt.textContent = T('myLocAcc', { m: Math.round(fix.acc), h: fix.alt });
+  locMsg(T('fixInfo', { m: Math.round(fix.acc), a: ago(age), h: fix.alt }));
+}
+
+// ---------- another location: search, saved sites ----------
+let sites = LS.get('la.m.sites') || [], placeTimer = 0;
+function useSite(o, name) {
+  if (st.loc !== 'manual') setLoc('manual');
+  $('lat').value = (+o.lat).toFixed(6); $('lon').value = (+o.lon).toFixed(6);
+  st.siteName = name || ''; if (o.h != null && isFinite(o.h)) $('hgt').value = Math.round(o.h); else siteHeight();
+  save(); computeAll(); renderAll(); renderSaved(); locMsg(name ? T('usingName', { n: name }) : T('usingCoords'));
+}
+function renderSaved() {
+  const s = site(new Date());
+  $('saved').innerHTML = sites.length ? sites.map((x, i) => { const on = st.loc === 'manual' && s && Math.abs(s.lat - x.lat) < 1e-5 && Math.abs(s.lon - x.lon) < 1e-5;
+    return `<div class="site${on ? ' on' : ''}"><button class="use" data-i="${i}">${esc(x.name)}<small>${f(x.lat, 4)}, ${f(x.lon, 4)} · ${Math.round(x.h)} m</small></button><button class="del" data-d="${i}" aria-label="${esc(T('del', { n: x.name }))}">×</button></div>`; }).join('')
+    : `<div class="hint">${esc(T('noneSaved'))}</div>`;
+}
+async function searchPlace() {
+  const q = $('place').value.trim(), box = $('places');
+  if (q.length < 2) { box.innerHTML = ''; return; }
+  const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) { box.innerHTML = `<button class="res" data-lat="${+m[1]}" data-lon="${+m[2]}" data-n="">${esc(T('useCoords', { a: m[1], b: m[2] }))}<small>${esc(T('latlon'))}</small></button>`; return; }
+  box.innerHTML = `<div class="hint">${esc(T('searching'))}</div>`;
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${T.lang}&format=json`); if (!r.ok) throw 0;
+    const res = (await r.json()).results || [];
+    if (q !== $('place').value.trim()) return;
+    box.innerHTML = res.length ? res.map(x => { const nm = [x.name, x.admin1, x.country].filter(Boolean).join(', ');
+      return `<button class="res" data-lat="${+x.latitude}" data-lon="${+x.longitude}" data-h="${x.elevation != null ? +x.elevation : ''}" data-n="${esc(x.name)}">${esc(nm)}<small>${f(+x.latitude, 3)}, ${f(+x.longitude, 3)}</small></button>`; }).join('') : `<div class="hint">${esc(T('noPlace'))}</div>`;
+  } catch (e) { box.innerHTML = `<div class="hint">${esc(T('needNet'))}</div>`; }
+}
+async function siteHeight() {
+  const s = site(new Date()); if (!s) return;
+  locMsg(T('demLook'));
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${s.lat.toFixed(5)}&longitude=${s.lon.toFixed(5)}`); if (!r.ok) throw 0;
+    const h = +((await r.json()).elevation || [])[0]; if (!isFinite(h)) throw 0;
+    $('hgt').value = Math.round(h); save(); renderAll(); locMsg(T('demOk', { h: Math.round(h) }) + (st.siteName ? ' ' + T('usingName', { n: st.siteName }) : ''));
+  } catch (e) { locMsg(T('demFail'), true); }
+}
+
+// ---------- compute ----------
+function computeAll() {
+  const d = now(), s = site(d); pos.clear(); if (!s) return;
+  for (const sat of sats) { const e = LA.satEcef(sat.rec, d); if (!e) continue; const sp = LA.subPoint(e); if (sp.alt < 30000 || sp.alt > 40000) continue; const L = LA.look(s, e), r = Math.hypot(...e); pos.set(sat.id, { sp, az: L.az, el: L.el, d: [e[0] / r, e[1] / r, e[2] / r] }); }
+}
+function current(d) {
+  if (st.src === 'slot') { const lon = +$('slot').value || 0; return { name: T('slotName'), sub: ew(lon) + ' ' + T('nominal'), ecef: LA.geoNominalEcef(lon), lonNominal: lon }; }
+  const sat = sats.find(x => x.id === st.sel); if (!sat) return null;
+  const e = LA.satEcef(sat.rec, d); if (!e) return null; const sp = LA.subPoint(e);
+  return { name: sat.name, sub: `${ew(sp.lon)} · NORAD ${sat.id}`, sat, ecef: e, sp, lonNominal: sp.lon };
+}
+function renderAll() {
+  const d = now(), s = site(d); dataStatus(); gpsStatus();
+  if (!s) { $('satSub').textContent = T('checkCoords'); return; }
+  if ($('magAuto').checked) $('mag').value = s.magVar.toFixed(2);
+  const c = current(d);
+  if (!c) { last = null; $('satName').textContent = T('selectSat'); drawDial(s, null); updGlobe(s, null, d); $('det').innerHTML = ''; return; }
+  const r = LA.solve(s, c, d); last = { r, s, c };
+  const down = r.elGeo < 0;
+  $('satName').textContent = c.name; $('satSub').textContent = c.sub + ' · ' + (down ? T('belowHorizon') : T('visible'));
+  $('hero').classList.toggle('down', down);
+  $('vAz').innerHTML = deg(r.azTrue); $('vAzM').textContent = T('compass', { v: f(r.azMag, 1) + '°' });
+  $('vEl').innerHTML = deg(r.elApp); $('vElS').textContent = s.offset ? T('dishSet', { v: f(r.mountEl, 1) + '°' }) : T('geom', { v: f(r.elGeo, 2) + '°' });
+  $('azNeedle').setAttribute('transform', `rotate(${f(r.azTrue, 2)} 20 20)`);
+  const ea = Math.max(0, Math.min(90, r.elApp)) * LA.D2R; $('elLine').setAttribute('x2', (4 + 32 * Math.cos(ea)).toFixed(2)); $('elLine').setAttribute('y2', (36 - 32 * Math.sin(ea)).toFixed(2));
+  $('vSk').textContent = (r.skew > 0 ? '+' : '') + f(r.skew, 1) + '°'; $('vSkS').textContent = Math.abs(r.skew) < .05 ? T('noRot') : T(r.skew > 0 ? 'cwS' : 'ccwS');
+  $('vRg').textContent = Math.round(r.range).toLocaleString(T.lang); $('vRgS').textContent = `km · ${f(r.delay2, 0)} ms`;
+  $('vHa').textContent = `${f(Math.abs(r.polar.hourAngle), 1)}°${r.polar.hourAngle >= 0 ? T('east') : T('west')}`;
+  details(s, c, r, d); drawDial(s, r); updGlobe(s, c, d); updateGuide();
+}
+function details(s, c, r, d) {
+  const G = [], g = (t, rows, open) => G.push(`<details${open ? ' open' : ''}><summary>${t}</summary><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></details>`);
+  const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), sa = LA.sunAlign(s, day, r.azTrue), al = LA.arcLimits(s);
+  const lt = t => t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const sk = Math.abs(r.skew) < .05;
+  g(T('gPointing'), [[T('trueAz'), f(r.azTrue) + '°'], [T('compAz'), f(r.azMag) + '°'], [T('compGon'), f(r.azGon)], [T('magDecl'), f(s.magVar) + '°'], [T('appEl'), f(r.elApp) + '°'], [T('geoEl'), f(r.elGeo) + '°'], [T('refr'), f(r.refr, 3) + '°'], [T('mount'), f(r.mountEl) + '°'], [T('skew'), (r.skew > 0 ? '+' : '') + f(r.skew) + '°'], [T('skewBehind'), sk ? '—' : T(r.skew > 0 ? 'cw' : 'ccw')], [T('skewFacing'), sk ? '—' : T(r.skew > 0 ? 'ccw' : 'cw')]]);
+  g(T('gPath'), [[T('slant'), f(r.range, 1) + ' km'], [T('oneWay'), f(r.delay1, 2) + ' ms'], [T('upDown'), f(r.delay2, 2) + ' ms'], [T('simpleEl'), f(r.elSimple) + '°']]);
+  g(T('gPolar'), [[T('polAxis'), f(r.polar.axisElev) + '°'], [T('fixDecl'), f(r.polar.fixedDecl) + '°'], [T('trueDecl'), f(r.polar.trueDecl) + '°'], [T('motorAng'), `${f(Math.abs(r.polar.hourAngle))}° ${r.polar.hourAngle >= 0 ? T('east') : T('west')}`], [T('visArc'), al ? `${ew(al.west)} … ${ew(al.east)}` : T('none')]]);
+  g(T('gSun'), [[T('sunNow'), `${f(r.sun.az, 1)}° / ${f(r.sun.el, 1)}°`], [T('sunOnSat'), sa.length ? sa.map(x => lt(x.t) + (x.el < 0 ? ` (${T('night')})` : '')).join(', ') : T('notToday')]]);
+  if (c.sat) { const ep = LA.tleEpoch(c.sat.rec), ex = LA.excursion(s, c.sat.rec, d); g(T('gOrbit'), [[T('tleAge'), ago(d - ep)], [T('incl'), f(c.sat.incl, 3) + '°'], [T('subLat'), f(c.sp.lat, 3) + '°'], [T('exc'), ex ? `${f(ex.azPP, 3)}° / ${f(ex.elPP, 3)}°` : '—']]); }
+  const open = [...$('det').querySelectorAll('details')].map(x => x.open);
+  $('det').innerHTML = G.join(''); $('det').querySelectorAll('details').forEach((x, i) => { if (open.length) x.open = open[i]; });
+}
+
+// ---------- globe ----------
+let globe = null;
+function updGlobe(s, c, d) {
+  if (!globe || st.view !== 'globe') return;
+  const sn = LA.sunEcef(d), sr = Math.hypot(...sn), sel = c ? Math.hypot(...c.ecef) : 1;
+  const list = st.src === 'tle' ? [...pos].map(([id, p]) => ({ id, d: p.d, vis: p.el > 0 })) : [];
+  globe.set({ site: { lat: s.lat, lon: s.lon }, sats: list, selId: c && c.sat ? c.sat.id : null, selDir: c ? c.ecef.map(v => v / sel) : null,
+    sun: sn.map(v => v / sr), arc: LA.arcLimits(s), label: c ? (c.sat ? `${c.name} · ${ew(c.lonNominal)}` : `${c.name} · ${ew(c.lonNominal)}`) : '' });
+}
+function setView(v) {
+  st.view = v; save(); $('vGlobe').setAttribute('aria-pressed', v === 'globe'); $('vSky').setAttribute('aria-pressed', v === 'sky');
+  $('globeStage').hidden = v !== 'globe'; $('skyStage').hidden = v !== 'sky'; $('recenter').hidden = v !== 'globe'; $('vizCap').hidden = v !== 'globe';
+  if (v === 'globe' && !globe) globe = Globe.create($('globe'), { land: '-596,-800,-3,-5,-3,-5,-21,1,-22,0,-12,3,0,1,-6,2,23,0,21,-1,8,4,5,4,10,-4;-1592,-795,-19,-1,-13,3,-6,4,-1,0,-6,3,6,4,19,-2,10,-3,7,-3,3,-5;-452,-780,13,-5,4,-6,1,-4,1,-5,-16,-3,-16,-3,-19,-2,-21,-2,-24,0,-13,4,2,4,21,3,9,3,6,4,5,4,6,3,6,5,5,0,15,2,15,-2;-1212,-735,13,-2,12,2,-6,-3,-9,-3,-14,1,-10,3,2,4,12,-2;-1256,-735,16,-4,-6,1,-13,1,-14,2,7,3,10,-3;-990,-719,11,-2,11,1,6,-5,-8,1,-12,-1,-12,1,-14,-1,-10,2,-5,4,6,2,13,-2,14,0;-685,-710,2,-4,-2,-4,-3,-4,-12,-1,-11,-2,-13,0,5,4,-12,-1,-11,-2,-8,3,0,4,11,4,7,1,11,0,3,5,1,4,0,8,5,5,9,1,6,-4,2,-3,4,-5,4,-4,2,-5;-1800,-847,1,0,8,6,18,-4,2,1,2,1,4,1,3,1,1,0,2,0,1,0,14,-4,13,4,2,0,29,2,10,-2,5,-1,15,-4,28,-2,23,-3,38,-3,29,3,43,-2,24,-3,26,3,28,3,2,4,-39,1,-33,2,-8,4,-27,2,2,5,4,4,3,3,-2,5,-16,2,-8,4,-15,3,24,-1,23,2,15,-3,17,3,17,3,8,4,-4,4,-13,2,-14,3,-21,1,-18,1,-19,1,-7,4,-13,3,-8,4,-3,11,5,-1,9,-3,17,1,16,1,8,-4,16,1,13,2,13,3,11,3,15,1,0,4,-4,4,3,3,13,2,6,-3,15,2,12,2,14,0,13,1,14,3,11,2,12,2,8,-1,7,0,14,1,14,-2,13,0,14,2,13,-1,15,-1,14,0,14,0,15,0,14,0,10,3,12,2,13,-2,12,1,11,4,6,-3,4,-4,6,-3,10,3,12,-4,14,-1,11,-3,15,1,12,2,15,-1,14,-1,14,-2,5,4,-7,4,-5,3,-12,1,-6,4,-2,3,-4,8,8,-2,13,0,13,0,12,-1,10,-3,4,-4,14,0,13,1,13,2,13,1,10,-2,13,1,9,7,8,-4,11,-2,13,1,8,-4,13,0,12,-1,12,-3,8,4,4,4,10,-4,14,1,10,-2,7,-4,13,1,10,2,11,3,12,1,14,2,13,1,9,2,6,3,3,5,-2,4,-3,4,-3,3,-3,4,-3,4,0,4,1,4,4,3,4,5,2,3,-2,5,-1,4,4,4,6,3,6,4,7,3,8,3,4,4,6,3,6,3,10,0,6,3,7,2,8,1,7,3,6,3,8,1,6,-2,-4,-4,-10,-3,-4,-2,-8,2,-8,-1,-7,-2,-7,-3,-5,-3,-1,-4,0,-4,5,-3,-7,-2,-9,-1,-6,-3,-6,-3,-6,-5,-2,-4,4,-4,5,-3,8,-2,8,-3,4,-4,2,-4,3,-4,5,-3,3,-4,1,-9,3,-4,1,-4,3,-4,-1,-5,-6,-4,-6,-3,-13,-2,-4,-3,-7,-4,-15,-3,-13,-2,-12,-2,-14,-2,-8,-4,-16,-1,-18,1,-16,-1,-16,0,3,-4,15,-2,11,-3,6,-3,-11,-3,-17,1,-14,-3,-1,-4,0,-4,12,-3,2,-4,12,-4,22,-1,18,-3,14,-3,18,-3,25,-2,24,-2,17,-3,19,-4,10,-4,5,-4,12,3,16,3,18,3,21,3,17,3,25,0,25,-1,20,-3,6,4,14,3,26,1,19,2,19,2,21,1,22,2,15,3,-7,3,-4,4,0,3,-19,0,-21,-2,-19,0,-3,4,1,8,5,2,14,2,17,2,12,3,12,3,9,4,14,2,13,1,7,1,16,1,14,1,13,2,12,2,11,3,14,3,9,3,9,3,3,4,-11,2,4,4,7,4,10,1,11,3,10,3,8,4,5,5,7,2,12,0,5,-4,12,0,0,4,5,4,11,-1,3,-4,12,-1,13,2,12,1,11,0,5,-4,11,3,10,2,11,1,11,1,11,3,11,1,8,3,6,3,8,-2,10,1,8,-5,5,-3,12,2,4,4,10,2,13,0,4,-4,8,4,11,1,12,0,11,0,11,-1,11,-1,4,-3,7,-3,11,2,11,0,12,0,11,0,10,2,11,1,8,3,10,1,10,1,8,3,5,6,6,3,10,-2,4,-3,9,-2,10,0,7,-3,7,-3,11,3,3,4,9,2,11,3,9,1,12,2,8,2,8,3,8,2,9,-1,9,3,7,3,9,0,9,2,1,4,9,3,8,1,10,2,9,1,9,-1,10,-1,8,-2,1,-5,8,-3,6,-3,12,-1,7,-3,8,-3,10,0,8,2,9,4,9,-2,10,-1,9,-2,10,0,10,0,8,-11,0,-2,-1,-5,-10,-2,-8,-4,1,-4,12,0,-2,-4,-5,-3,-5,-5,8,-3,12,-1,11,2,6,4,3,4,6,3,6,3,2,3,6,5,6,1,11,1,10,1,10,1,5,4,3,4,7,4,10,2,8,2,6,4,6,1,7,2,10,-1,9,1,10,1,11,0,7,2,5,7,4,-3,4,-5,9,-1,9,-1,10,1,10,-1,9,0,7,1,8,-1,8,-2,9,2,11,0,9,1,10,-1,7,3,5,3,7,3,12,7,7,-1,7,-3,7,-3,13,-6,10,-1,9,0,11,2,10,1,9,3,6,3,12,0,7,2,8,-2,5,-3,7,-3,11,0,7,-2,12,-3,12,-1,11,1,8,3,6,3,9,1,9,-1,11,-1,9,1,9,0,9,-1,9,-1,9,2,11,2,10,0,11,0,10,1,9,1,2,5,1,4,6,-3,2,-4,3,-4,4,-4,9,-2,11,1,13,0,9,1,13,0,10,0,13,0,11,-1,7,-3,-2,-4,6,-3,11,-2,11,-3,13,-2,14,-1,10,-2,11,0,7,3,9,-2,7,-3,9,-3,12,-1,12,-1,5,-4,11,-2,8,-4,11,-1,11,0,11,-1,12,0,12,0,11,-2,11,-2,10,-2,7,-3,-1,-4,-5,-3,-5,-5,-3,-3,-5,-5,-13,-1,-6,-4,-13,-2,-5,-4,-6,-3,-8,-4,-4,-4,-2,-3,-1,-5,0,-4,6,-4,2,-3,4,-4,19,-1,4,-5,-18,-1,-15,-2,-19,-1,-9,-5,-2,-5,-4,-4,-5,-3,13,-4,5,-4,9,-4,12,-3,14,-3,15,-3,23,-3,5,-5,29,-2,2,-1,7,-3,28,2,23,-3,-3583,-2;-678,-538,13,-7,14,-2,-4,-5,-10,0,-5,3,-3,-4,-8,-3,-11,1,-8,3,-10,1,-13,6,-10,5,-14,12,9,-2,14,-7,13,-4,5,5,3,7,10,4,7,-1,3,-5,5,-7;-585,-511,8,-4,-3,-4,-14,-3,-4,4,-9,-5,-5,5,12,5,8,-2,7,4;703,-497,-16,-1,0,6,2,4,0,2,7,-3,9,-2,1,-2,-3,-4;1454,-408,10,-3,5,1,8,2,6,-1,1,-12,-4,-3,-1,-8,-3,3,-7,-7,-2,0,-7,1,-6,8,-1,7,-6,8,0,5,7,-1;1730,-409,2,-4,8,4,2,-4,0,-5,-3,-4,-7,-8,-5,-4,4,-5,-8,0,-8,-3,-3,-7,-6,-10,-8,-5,-5,-2,-9,0,-6,3,-11,1,-2,3,5,8,13,10,6,2,8,3,8,6,6,5,5,7,4,3,1,5,7,5,2,-4;1746,-362,7,-10,1,7,4,-3,2,-8,8,-3,6,-1,6,4,5,-1,-2,-9,-3,-6,-8,1,-3,-3,1,-5,-1,-2,-4,-5,-5,-7,-8,-4,-1,3,-4,1,5,8,-3,6,-11,4,1,4,7,3,1,8,0,6,-4,7,0,2,-5,4,-7,9,-5,7,4,0,6,-5,7,-3,3,-9;1671,-222,-4,-2,-5,3,-7,4,-7,6,-6,7,-2,3,5,0,5,-4,5,-3,3,-3,8,-6,5,-5;1784,-173,3,-3,-1,-6,-7,-1,-5,1,-1,5,4,3,4,-1,3,2;-1800,-166,3594,-2,-7,-2,-1,4,5,2,3,0,-3594,3,2,1,-1,-5,-1,-1;1678,-165,-3,-1,-3,4,0,3,6,-6;1671,-149,2,-8,-3,1,-2,-1,-1,3,-1,8,5,-3;501,-136,1,-12,3,-4,-1,-5,-2,-3,-3,6,-2,-3,2,-8,-1,-4,-3,-2,-1,-9,-4,-11,-5,-14,-6,-19,-4,-14,-4,-11,-8,-3,-9,-4,-6,3,-8,3,-2,5,-1,9,-4,8,0,7,1,8,5,1,0,4,5,7,1,7,-3,4,-2,7,0,9,3,5,1,7,5,0,6,2,4,2,4,0,6,6,8,6,3,5,-1,4,4,-1,5,7,1,6,3,5,3,-5,3,-4,3,-7;1436,-138,3,-7,7,3,3,-4,5,-4,-1,-4,2,-9,1,-5,3,-1,3,-9,-1,-5,3,-7,11,-5,7,-5,6,-4,-1,-2,6,-7,4,-10,4,2,4,-5,2,2,2,-11,7,-6,5,-4,8,-8,2,-8,1,-5,-1,-7,5,-8,-1,-9,-2,-5,-2,-9,0,-5,-2,-7,-5,-10,-7,-4,-4,-8,-3,-5,-3,-9,-4,-5,-2,-7,-2,-7,1,-3,-6,-4,-11,0,-9,-4,-5,-4,-6,-4,-8,4,-6,2,1,5,-5,-2,-9,-7,-9,3,-5,1,-6,1,-10,3,-6,6,-2,8,-2,5,-5,4,-10,1,3,5,-2,7,-5,-7,-9,-2,6,6,1,6,4,5,-1,7,-8,-9,-6,-3,-4,-8,-8,4,0,6,-6,7,-5,4,2,2,-13,6,-7,0,-10,5,-18,-1,-13,-3,-11,-4,-10,1,-10,-5,-9,-3,-2,-5,-3,-4,-9,0,-6,-1,-9,2,-7,-1,-7,-1,-6,-5,-3,0,-5,-2,-5,-4,-7,1,-7,0,-10,6,-6,2,0,6,5,1,2,2,0,4,1,7,-1,6,-5,10,-2,6,0,5,-4,7,0,3,-4,4,-2,8,-5,8,-2,4,5,-4,-4,9,5,-3,3,-4,0,5,-5,8,-1,3,-2,3,1,6,2,2,1,5,-1,6,4,7,1,-7,4,7,9,3,4,4,8,4,5,1,2,-1,8,3,6,1,2,3,3,0,5,0,11,3,5,5,3,5,5,5,1,4,0,5,7,9,4,-9,5,2,-4,5,3,5,5,-2,1,7,5,5,3,4,5,2,0,3,4,-1,0,2,5,1,5,2,7,-5,6,-6,6,0,6,-1,-2,6,5,8,4,2,-1,3,4,6,6,3,5,-1,9,2,0,5,-8,3,6,2,6,-3,6,-4,8,-2,3,1,6,-3,6,2,4,0,2,1,5,-5,-3,-5,-4,-4,-3,0,1,-4,-3,-5,-4,-5,1,-3,8,-6,8,-3,5,-3,7,-6,3,0,5,-3,2,-3,9,-3,7,3,2,6,2,4,1,6,3,8,-1,4,0,3,-1,6,2,8,1,2,-1,3,2,5,2,6,0,3,4,3,3,-5,1,-6,2,-1,1,-4,3,-5,1,-6,0,-4;1621,-105,3,-3,-7,0,-4,6,6,-2,2,-1;1207,-102,-4,-1,-13,7,9,2,5,-3,4,-3,-1,-2;1609,-99,-4,0,-6,1,-3,2,1,4,7,-2,3,-2,2,-3;1617,-96,-2,-2,-7,9,-2,6,3,0,4,-8,4,-5;1244,-101,-8,-3,-1,2,1,3,4,6,10,4,1,2,8,3,7,0,4,1,3,-1,-3,-3,-11,-4,-8,-3,-7,-7;1179,-81,4,-3,6,1,2,-4,-11,-2,-7,-1,-6,0,4,5,5,1,3,3;1229,-81,-1,-6,-15,-2,-14,1,0,4,8,2,6,-3,7,0,9,4;1599,-83,0,-2,-8,4,-5,3,-4,4,2,1,4,-3,8,-4,3,-3;1575,-73,-2,-1,-4,2,-4,4,0,2,6,-4,4,-3;1086,-68,19,-1,3,4,18,-4,4,-7,15,-2,12,-6,-11,-4,-11,5,-9,-1,-11,1,-9,2,-12,4,-7,1,-4,-2,-18,4,-2,5,-9,0,7,10,12,-1,8,-3,4,-1,1,-4;1347,-62,-5,-7,-1,8,2,3,2,4,2,-3,0,-5;1559,-68,-3,-1,-4,4,-5,6,-2,8,2,1,1,-3,3,-3,4,-6,5,-3,-1,-3;1520,-55,-5,-1,-2,-2,-5,-3,-6,-2,-5,0,-8,3,-6,3,1,3,9,-2,5,1,2,5,1,0,1,-5,6,0,3,4,5,3,-1,6,6,1,2,-2,0,-6,-3,-6;1272,-35,-3,-3,-7,2,-2,4,10,1,2,-4;1305,-31,3,-8,-8,5,-8,0,-6,0,-7,0,2,6,13,0,11,-3;1531,-45,-3,-3,-2,6,-2,4,-4,3,-6,5,-7,3,2,2,6,-3,3,-2,4,-2,4,-5,4,-3,1,-5;1341,-12,3,-16,11,-6,8,11,11,6,9,0,9,-4,7,-3,11,-2,17,-7,19,-6,7,-5,5,-5,2,-6,16,-6,3,-5,-9,-1,2,-7,9,-6,6,-11,6,0,0,-4,7,-2,-3,-2,11,-4,-1,-3,-7,-1,-2,3,-9,1,-10,2,-8,6,-5,6,-6,8,-13,5,-8,-3,-6,-3,1,-8,-8,-3,-5,1,-11,1,-9,8,-10,2,-2,-3,-13,0,4,8,7,3,-3,11,-5,8,-19,9,-8,0,-15,10,-3,-5,-4,-1,-2,4,0,4,-8,5,11,3,7,0,-1,3,-15,0,-4,6,-9,2,-4,5,14,2,5,3,16,-4,1,-4;1252,14,-8,-10,-7,-2,-10,2,-16,0,-9,-2,-2,-7,9,-9,6,4,18,4,0,-5,-5,2,-4,-6,-9,-4,10,-13,-2,-3,9,-12,0,-6,-6,-3,-4,3,5,8,-10,-4,-2,3,1,4,-7,6,1,10,-7,-3,1,-12,0,-14,-6,-2,-4,3,3,9,-2,10,-4,0,-3,7,4,7,1,7,5,16,2,4,9,7,8,-3,12,-1,12,0,10,7,1,-2;1287,11,-1,-8,-5,1,-1,-7,4,-5,-3,-1,-4,6,-3,13,2,8,3,4,1,-6,6,-1,1,-4;1058,-59,-11,0,-8,9,-13,8,-4,6,-8,8,-5,7,-8,14,-8,9,-3,8,-4,8,-9,7,-5,8,-8,6,-10,11,-1,5,6,-1,16,-2,9,-9,7,-7,6,-4,9,-11,11,0,8,-7,6,-8,7,-5,-4,-8,6,-4,4,0,1,-7,4,-5,7,-1,5,-7,-2,-12,-1,-16;1179,18,11,-9,-12,-1,-3,-7,0,-9,-9,-7,-1,-10,-4,-15,-1,3,-11,-4,-4,6,-7,1,-5,3,-12,-4,-4,5,-7,0,-8,1,-1,13,-5,3,-5,8,-1,9,1,9,6,7,7,-3,8,2,2,8,4,2,12,2,7,8,5,6,4,4,9,5,7,7,5,8,4,0,5,-5,1,-4,6,-3,9,-3,-1,-4,-7,0,2,-5,-7,-4,-6,-9,7,-9,-1,-5;1264,84,1,-6,0,-6,-3,-9,-4,10,-4,-5,3,-8,-3,-4,-12,6,-3,7,3,5,-6,4,-3,-4,-5,1,-7,-6,-2,3,4,8,6,3,6,4,3,-5,8,3,2,5,7,0,-1,8,8,-5,1,-5,1,-4;812,62,-9,-2,-4,8,-2,14,4,16,7,-5,5,-7,5,-11,-2,-10,-4,-3;-609,101,-9,-1,-2,1,3,3,0,4,6,1,2,0,0,-8;1240,103,-4,-4,-3,-6,-3,-3,-6,7,2,3,2,3,1,6,6,0,-2,-6,8,9,-1,-9;1185,93,-13,-9,5,7,7,6,6,7,5,10,2,-8,-7,-6,-5,-7;1219,119,6,-3,6,0,0,-4,-5,-5,-6,-3,0,5,0,5,-1,5;1255,122,3,-12,-8,3,0,-3,3,-6,-5,-3,0,7,-3,1,-2,6,6,-1,0,4,-6,8,9,-1,3,-3;1215,131,-2,-9,-5,5,-5,8,9,-1,3,-3;1213,185,6,-3,3,3,1,-3,-1,-4,3,-7,-2,-8,-6,-4,-2,-8,2,-8,6,-1,4,1,13,-5,-1,-6,3,-2,-1,-5,-8,5,-4,6,-2,-4,-7,6,-9,-2,-5,3,1,4,3,2,-3,3,-1,-4,-5,6,-2,4,0,10,4,-4,1,16,3,9,6,0;-656,182,-2,-2,-8,0,-6,-1,0,5,1,1,8,0,5,-1,2,-2;-769,179,-3,-2,-6,2,-5,3,1,3,4,0,2,0,7,-1,5,-2,2,-3,-7,0;-726,199,9,-2,1,2,8,0,6,-3,2,0,2,-3,6,0,-1,-3,5,0,5,-4,-4,-4,-5,2,-4,0,-4,0,-1,-2,-4,0,-2,2,-3,-1,-4,-7,-3,2,0,2,-7,2,-4,-1,-7,1,-4,-2,-6,3,1,4,10,-2,7,-1,4,3,-5,4,0,4,-6,1,2,3,6,0;1103,187,-8,-5,-8,3,-1,9,5,4,11,3,6,0,2,-4,-4,-4,-3,-6;-1555,191,-2,-2,-2,2,0,2,-2,4,1,1,1,2,0,2,0,1,1,-1,4,-1,2,-1,1,-1,3,-4,-4,-3,-3,-1;-1561,206,-3,0,-2,2,-1,1,1,1,3,-1,3,-1,-1,-2;-1568,212,0,-1,-5,0,0,1,5,0;-1577,213,-1,0,-3,0,-2,2,0,1,3,1,1,0,2,-4;-1593,220,-2,-1,-3,2,1,0,1,1,2,0,1,-2;-797,228,4,-4,10,1,3,-2,9,-6,6,-5,3,0,6,-2,-1,-3,8,0,7,-4,-1,-2,-7,-2,-6,0,-7,1,-15,-1,7,5,-4,3,-6,0,-4,3,-2,6,-6,0,-9,2,-3,2,-13,2,-4,2,4,2,-10,1,-7,-5,-4,0,-2,-3,-4,-1,-5,1,6,3,2,4,4,2,5,2,8,1,2,1,9,-1,8,0,9,-3;-775,238,-3,-1,-2,6,-4,3,2,6,3,0,4,-9,0,-5;1212,228,-5,-8,-5,8,-1,8,6,9,8,8,5,-3,-2,-6,-6,-16;-778,266,-11,-2,-1,4,5,1,7,-1,0,-2;-770,266,-2,-7,-2,1,1,5,-5,4,0,1,8,-4;1346,341,2,-3,-6,-6,-4,3,-5,-2,-3,-6,-6,3,0,5,5,6,6,-2,4,5,7,-3;346,357,-7,-5,1,-1,0,-1,-10,-4,-5,1,-2,4,4,0,1,0,1,3,8,0,9,3;237,357,5,-3,8,0,8,0,-1,-2,6,1,-1,-3,-15,-1,0,2,-12,2,2,4;155,382,-3,-8,1,-3,-2,-5,-8,4,-5,1,-14,5,2,5,11,-1,11,1,7,1;92,412,6,-7,-1,-13,-5,0,-4,-3,-4,3,0,12,-2,6,5,-1,5,3;1410,371,-4,-8,2,-5,-5,-7,-13,-4,-18,-1,-14,-11,-7,3,0,8,-18,-2,-11,-5,-12,0,10,-8,-7,-16,-6,-5,-5,4,2,9,-6,3,-4,7,10,3,5,6,10,6,7,6,20,3,11,-2,10,18,7,-5,15,10,5,4,7,12,-2,12,4,6,11,2,5,-14,0,-8,-9,-10,0,-11;96,422,-4,-8,-4,2,-3,7,2,3,7,4,2,-8;1439,442,7,-2,7,4,2,-11,-14,-3,-9,-10,-16,7,-5,-11,-11,0,-2,10,5,7,11,1,3,14,3,8,11,-11,8,-3;-637,465,8,-1,9,0,-5,-4,-4,0,-12,4,-3,3,4,3,3,-5;-618,491,-5,0,-13,3,-9,5,3,1,13,-3,11,-4,0,-2;-1235,485,-5,-1,-17,4,-3,4,-8,3,-2,3,-11,2,-3,5,0,3,11,-2,6,-2,9,-1,4,-4,5,-4,10,-4,4,-6;-561,507,-7,-9,7,3,6,-2,-3,-3,9,-3,4,3,10,-4,-3,-7,7,2,1,-5,4,-7,-5,-8,-4,-1,-7,2,2,8,-2,2,-12,-9,-6,0,7,5,-10,2,-10,0,-20,0,-1,3,6,4,-4,2,8,6,10,16,7,6,8,3,5,0,-2,-3,-5,-6;-1327,540,10,1,-4,-11,9,-8,-4,0,-6,4,-4,5,-5,3,-1,5,0,3,5,-2;1436,507,11,-17,-15,3,-6,-14,9,-11,0,-7,-8,6,-6,-7,-2,8,1,10,-1,11,2,7,1,14,-6,9,1,14,9,5,-4,4,5,2,2,-7,4,-10,-1,-9,4,-11;-68,523,-18,-6,-14,1,8,11,-5,10,14,8,7,4,9,1,10,-6,-5,-7,2,-7,-8,-9;127,556,-6,-8,-11,6,-1,4,15,3,3,-5;-1530,571,-10,-4,-5,3,-2,5,9,3,6,2,6,-1,5,-3,-9,-5;-30,586,-11,-10,10,1,11,0,-2,-8,-9,-9,10,-1,10,-13,7,-1,6,-12,3,-4,12,-2,-1,-6,-6,-3,4,-5,-9,-5,-13,0,-17,-3,-5,2,-6,-5,-9,1,-7,-3,-6,2,15,10,9,2,-16,2,-3,4,11,3,-6,5,2,7,15,-1,2,6,-7,6,-12,2,-3,3,4,4,-3,3,-6,-5,0,10,-6,5,4,10,8,8,8,0,12,0;-1656,599,-6,-1,-6,1,-7,3,10,2,8,-1,1,-4;-793,622,-4,-6,-4,1,-3,3,1,1,4,3,4,0,2,-2;-819,627,-12,-5,-7,0,-2,3,8,4,13,0,0,-2;-1717,638,6,-2,6,1,8,-3,10,-1,-1,-1,-7,-2,-8,2,-4,2,-9,-1,-2,1,1,4;-852,657,2,-5,5,2,6,-3,11,-3,12,-3,0,-5,8,1,7,-4,-9,-3,-15,3,-6,4,-10,-5,-14,-5,-4,5,-13,-1,8,5,2,8,3,9,7,0;-145,665,-2,-7,11,-7,-13,-7,-29,-7,-9,-2,-13,1,-28,4,10,4,-22,5,18,2,0,3,-21,2,6,7,16,1,15,-7,15,6,13,-3,16,5,17,0;-759,671,-11,0,-2,5,4,5,9,2,8,-3,0,-4,-1,-2,-7,-3;-1800,690,25,-8,26,-10,-1,-6,7,-3,-3,8,27,-2,20,-9,-10,-5,-16,-1,-1,-9,-4,-2,-9,0,-8,3,-13,3,-2,5,-10,1,-12,-1,-5,3,2,4,-12,-2,5,-5,-6,-4,3600,0,-13,-5,-13,1,9,-5,6,-8,5,-3,1,-4,-3,-3,-18,2,-28,-7,-9,-1,-16,-8,-14,-6,-4,-4,-14,7,-26,-8,-5,4,-9,-5,-14,2,-3,-7,-12,-10,1,-4,11,-2,-1,-14,-10,-1,-4,-8,4,-4,-17,-6,-4,-11,-15,-2,-3,-11,-14,-9,-4,7,-4,15,-6,22,5,14,9,6,0,4,16,3,17,12,18,10,18,8,8,15,-12,-1,-6,-9,-26,-11,-8,13,-26,-4,-25,-16,8,-7,-22,-2,-15,-1,0,7,-15,2,-13,-5,-30,1,-33,-3,-32,-19,-39,-24,16,-1,5,-6,10,-2,6,5,11,-1,14,-11,1,-9,-8,-10,-1,-12,-4,-16,-15,-14,-4,-7,-13,-12,-14,-11,-6,-6,-14,-6,-6,0,-6,5,-14,-7,-1,-4,-4,1,-4,-4,-3,-3,0,-7,-5,-2,-2,-2,-4,-3,-6,-2,-5,-2,0,-5,-1,-1,4,-1,6,-5,8,-12,3,-6,0,-12,-4,-5,-9,-2,-8,-4,-9,-1,-1,5,2,8,-5,10,8,2,-7,8,-5,2,-1,-1,-3,-1,-1,2,-2,0,-3,2,3,4,2,2,-1,1,3,6,-1,2,-6,1,-4,2,-14,-3,-8,-4,-10,-3,5,5,-2,4,8,6,-6,5,-8,-3,-12,-7,-6,-6,-10,-1,-5,-5,6,-6,8,-2,0,-5,8,-2,11,7,9,-4,7,0,1,-6,-14,-2,-5,-6,-9,-5,-5,-7,10,-5,4,-10,6,-9,7,-8,0,-8,-6,-2,2,-6,6,-3,-2,-8,-2,-8,-6,-1,-7,-10,-8,-14,-9,-12,-14,-9,-14,-8,-11,-1,-6,-5,-4,3,-6,-4,-14,-5,-10,-2,-4,-11,-5,0,-3,7,3,4,-14,3,-5,-1,-13,-9,-8,-9,-2,-7,7,-11,10,-13,9,-6,6,-8,4,-19,-1,-17,-8,-7,-12,-6,-8,-9,-12,-9,-4,6,3,7,-8,6,-8,1,-4,6,-5,10,-9,4,-9,0,2,8,-9,0,-1,-11,-5,-15,-3,-8,0,-8,7,0,4,-9,2,-9,5,-5,6,-2,5,-5,3,-1,6,-6,4,-6,0,-7,-1,-5,1,-3,1,-6,4,-3,3,-9,0,-3,-7,-1,-9,8,-12,8,-1,5,-6,6,-1,9,-4,5,1,7,-2,5,-4,3,-2,5,-5,6,-5,5,-2,-6,-2,5,2,7,3,9,-1,8,3,7,-4,6,1,11,-4,5,-3,12,-2,13,-4,8,-7,-5,-11,-7,-6,1,-6,2,3,13,-2,9,-8,12,2,3,-6,2,-7,8,-3,5,-1,5,-2,5,-4,6,-9,0,1,-4,-3,-6,-5,2,-1,-1,-3,1,-4,1,-1,-4,-7,0,-12,-2,0,-8,-5,-5,-14,-7,-12,-12,-7,-6,-10,-7,0,-4,-5,-3,-9,-3,-5,-1,-3,-8,2,-13,1,-8,-4,-9,0,-17,-6,-1,-4,-8,3,-3,-9,-3,-4,-6,-4,-3,-9,9,-5,14,-4,10,-3,5,-5,9,-3,13,-2,6,-9,14,-4,19,-3,13,0,12,-2,10,-14,-6,-7,1,-13,12,4,4,-3,3,-11,9,-8,2,-3,8,-7,7,-19,-2,-16,0,-14,-1,-19,3,-11,2,-11,1,-4,13,-5,1,-8,-1,-10,-5,-12,3,-10,8,-10,3,-6,9,-8,13,-5,-1,-7,3,-3,-4,-6,1,2,-5,-1,-2,3,-7,4,-9,5,-2,2,-4,7,-4,0,-4,-1,-4,1,-3,3,-3,2,-3,1,-2,-1,7,3,5,3,1,3,-3,0,-6,-2,-6,2,-4,2,1,0,-3,8,2,8,0,6,-1,7,7,7,6,7,7,3,3,1,-1,-1,-4,-1,-2,1,-8,4,-7,6,-3,7,-2,6,-1,5,-6,2,-3,4,-2,0,-2,-4,-6,-1,-3,-4,-3,-4,-7,-5,1,-2,-3,-1,-5,1,-6,-1,-2,-5,0,-6,-3,-1,-5,-2,-2,-6,0,-4,-3,0,-4,-5,-3,-6,1,-6,-3,-5,0,-7,-3,-2,-5,0,-3,-10,-4,-16,-5,-9,-7,-5,-1,-3,1,-5,-4,-7,-2,-8,-1,-3,0,-2,-3,-3,0,-1,-3,-5,0,-3,-1,-7,0,-3,6,1,6,-2,3,-2,7,-3,4,2,1,-1,4,1,2,0,4,-1,5,-4,3,0,4,-5,3,-6,9,-3,8,-7,7,-4,1,-7,10,-1,7,1,6,-6,11,-5,4,-5,2,-3,6,0,2,-3,5,-3,2,-3,8,-7,8,-5,7,-5,0,2,5,0,4,2,4,-1,1,-3,-4,-2,-8,-2,-5,-3,-2,-3,4,-5,4,-7,15,-1,-1,4,-11,6,-10,8,-16,4,-5,3,-6,9,-11,-2,-1,0,-7,12,-9,2,-2,3,-10,-2,-2,1,-10,4,-12,4,-2,5,-4,6,-12,3,-9,5,-5,14,-9,5,-6,6,-6,3,-3,5,-3,2,-3,0,-4,-6,-3,4,-2,4,-2,2,-4,4,-5,5,0,10,3,10,1,9,3,5,1,4,2,5,0,4,0,4,2,6,1,4,3,4,0,0,-3,-1,-5,0,-6,-2,-3,-2,-11,-5,-11,-6,-13,-9,-15,-9,-11,-11,-13,-10,-9,-15,-9,-10,-8,-11,-12,-2,-5,-2,-3,-7,-4,-3,-4,-3,-1,-2,-7,-3,-4,-2,-6,-4,-4,-5,-12,1,-6,6,-3,1,-3,-3,-6,1,-3,-1,-5,3,-6,5,-10,3,-2,2,-5,-1,-10,2,-8,0,-16,2,-5,-3,-7,-4,-7,-6,-6,-10,-4,-11,-5,-11,-11,-4,-1,-7,-8,-4,-2,-1,-7,5,-8,2,-5,0,-3,2,0,-1,-10,-1,-4,2,-2,-1,-4,-5,-4,-8,-3,-12,-6,-4,-3,1,-4,2,-1,-1,-5,-2,-8,-1,-8,-3,-5,-7,-5,-2,-1,-4,-5,-3,-5,-5,-7,-12,-11,-7,-6,-7,-4,-11,-4,-5,-1,-1,-2,-6,1,-5,-2,-11,2,-6,-1,-4,0,-11,-4,-8,-1,-6,-4,-5,0,-4,3,-3,1,-5,4,0,-1,-2,2,1,6,-4,7,3,2,0,7,-6,10,-5,8,-8,13,-7,8,-4,7,-2,10,-3,7,-3,15,0,12,-1,6,-4,4,-5,8,-6,12,-2,7,-8,9,-1,8,-1,6,2,9,3,9,1,5,3,9,2,4,6,6,3,5,1,7,0,6,-3,3,-3,6,-2,6,0,2,3,4,-3,10,-2,7,-5,6,1,2,-1,3,-3,8,-8,10,-10,10,-7,9,-6,10,0,3,2,3,3,8,2,7,-2,2,3,11,2,8,-4,6,-5,2,-2,5,-2,1,0,3,-10,-4,-4,1,-4,-3,-8,1,-5,6,-4,7,-7,7,-7,0,-9,0,-8,-2,-8,-2,-16,-6,-6,-3,-9,-3,-9,3,-4,0,-7,2,-6,0,-12,-2,-7,-3,-10,-4,-2,1,-3,0,-10,4,-9,8,-9,5,-6,7,-3,1,-7,4,-5,5,-2,4,-1,7,-5,6,-4,4,-2,1,-3,2,-1,5,-1,2,-3,1,-6,5,-4,0,-2,3,0,2,-3,2,-1,2,-1,8,1,4,-4,8,-5,3,4,2,5,7,2,5,-1,6,3,5,2,9,-2,10,-1,5,1,5,-2,5,-6,4,1,4,0,5,4,3,3,5,0,3,3,7,6,7,3,1,3,6,0,5,4,7,6,3,7,10,5,4,9,1,8,7,5,3,8,8,-2,13,4,8,1,6,6,6,10,5,8,4,7,10,3,7,7,0,6,-5,10,1,10,-2,4,0,10,5,11,2,6,4,10,3,17,2,16,1,5,-2,10,4,10,0,4,-2,7,0,11,5,7,-2,0,-5,8,4,1,-2,-5,-5,0,-5,3,-2,-1,-9,-6,-5,1,-5,6,0,2,-5,4,-2,12,-3,4,1,8,-2,13,-4,5,-9,9,-2,14,-4,11,-5,5,2,5,5,-3,8,3,4,8,5,6,1,14,-2,3,-4,4,0,3,-2,10,-1,3,-3,13,0,10,-3,9,-3,5,-1,8,3,4,3,9,1,7,-2,3,-5,2,4,8,-3,8,0,5,2,3,3,-1,1,3,5,2,7,1,3,4,8,5,7,-1,8,2,4,-3,5,4,4,-6,-1,-9,2,-7,-6,-15,-1,-8,5,-11,1,-2,-4,-7,-2,-10,6,-11,0,-6,10,-7,5,5,8,-6,5,11,9,15,1,4,7,19,-1,12,6,12,3,17,0,17,-7,14,-4,12,2,9,-1,12,5,1,5,-2,6,-6,4,-6,1,-3,3,-13,9,-12,4,-8,5,7,2,8,8,-5,4,14,4,0,3,-9,-2,-8,-1,-6,-3,-10,-1,-8,-3,0,-6,5,-3,10,1,-2,-4,-11,-2,-13,-5,-6,2,2,4,-10,3,1,2,10,4,-3,2,-16,2,0,4,-10,-1,-3,-6,-8,-7,0,-3,-5,-2,-3,1,-2,-12,-6,-4,-3,-7,3,-6,1,-4,9,-3,-2,-2,-12,-1,-4,-3,-8,-5,-4,4,1,2,-7,1,-5,0,-12,-2,7,-6,-5,-1,-6,0,-5,5,-2,-2,3,-6,5,-5,-4,-2,5,-5,5,-3,0,-5,-9,2,3,-5,-6,-1,4,-9,-7,0,-8,4,-4,8,-2,7,-4,5,-5,5,0,3,-2,1,0,2,-6,4,-1,4,1,7,1,3,-1,2,-2,1,-3,3,-5,2,-9,3,-6,4,-9,3,-8,7,2,1,-5,4,0,4,-6,1,-3,-4,-3,3,0,4,2,1,-8,1,-8,-3,1,-5,-1,-3,3,-5,9,-5,5,-8,11,-8,8,0,3,-3,-3,-2,9,-3,7,-3,9,-5,1,-2,-2,-4,-6,5,-8,1,-4,-6,7,-4,-1,-5,-5,-1,-5,-8,-4,-1,0,3,2,6,2,2,-4,5,-3,5,-4,2,-3,4,-6,2,-5,4,-7,1,-8,4,-9,7,-7,5,-3,10,-5,1,-8,4,-5,-2,-6,-4,-4,-1,-9,-6,-19,3,-15,-3,-1,-6,0,-6,-9,-7,-13,-2,-1,-3,-6,-6,-4,-8,4,-6,-6,-4,-2,-7,-7,-2,-7,-7,-13,0,-10,0,-6,-4,-4,-4,-5,1,-3,4,-3,5,-10,2,-4,-3,-5,2,-5,-1,2,8,-1,6,-5,1,-2,3,1,7,4,4,0,4,2,6,0,4,-2,3,0,4,0,7,-4,4,14,7,12,-1,14,0,11,-2,8,1,16,-1,5,6,2,20,-10,11,-8,5,-15,4,-1,7,13,2,17,-3,-3,12,9,-5,23,8,3,8,9,2,8,2,5,3,9,15,14,4,8,0,2,2,8,0,2,-2,7,5,-2,4,-1,6,-4,5,0,10,2,3,2,3,9,1,4,2,8,3,-1,-5,-2,-3,1,-3,5,-1,-2,-4,-3,1,-8,-7,3,-5,0,-4,10,-2,0,-4,11,2,5,3,11,-4,5,-3,7,3,16,4,12,4,10,-2,1,-3,10,0,2,5,14,3,-2,8,0,8,5,6,9,4,8,-8,8,0,2,8,1,6,-3,-1,-7,3,-1,6,13,3,13,1,10,-2,11,1,11,5,-10,5,-18,-1,-18,-3,-16,-3,-6,6,-10,3,2,10,-4,9,4,6,9,6,23,11,7,2,-1,4,-14,5,-17,-3,-10,-7,2,-6,-16,-8,-20,-9,-7,-14,7,-7,10,-5,-9,-11,-11,-3,-4,-17,-5,-9,-12,1,-6,-8,-12,0,-3,9,-8,11,-8,15,-6,6,-20,-12,-13,-2,-14,5,-4,11,-3,23,9,6,27,9,19,10,19,14,24,19,16,8,28,12,22,5,16,-1,15,8,19,0,18,2,31,-7,-13,-3,11,-6,10,3,17,-6,27,-2,38,-12,8,-4,0,-7,-11,-5,-16,-3,-45,8,-7,-2,16,-7,1,-15,13,-3,8,-2,1,4,-6,5,7,3,24,-6,8,3,-6,7,23,10,9,-1,10,-3,5,7,-8,6,5,6,-7,6,28,-4,5,-5,-12,-1,0,-6,7,-3,16,2,2,6,21,5,35,9,8,-1,-10,-6,12,-1,7,3,19,1,15,4,11,-6,12,6,-11,6,6,4,29,-4,14,-3,36,-11,7,5,-10,5,-1,3,-12,1,4,4,-6,8,0,3,18,9,7,9,7,2,27,-2,2,-6,-10,-8,7,-3,3,-7,-2,-14,11,-6,-5,-7,-19,-14,11,-1,4,3,11,3,3,5,9,5,-6,5,4,7,-11,1,-2,5,8,10,-13,8,18,7,-2,7,5,1,5,-6,-4,-10,11,-1,-5,7,17,4,21,0,18,-6,-9,9,-1,10,18,3,24,-1,21,1,-8,6,12,6,11,0,20,5,26,2,3,2,27,1,8,-2,22,5,19,0,2,5,10,4,24,4,17,-3,-14,-3,23,-1,2,-5,10,2,29,0,22,-5,8,-4,-2,-5,-11,-3,-26,-5,-8,-3,12,-2,15,-2,9,2,5,-7,5,3,16,2,32,-2,2,-5,42,-1,1,7,21,-1,16,0,16,-6,5,-6,-6,-4,12,-8,16,-4,10,10,16,-4,17,3,19,-4,7,3,17,-1,-8,9,14,4,90,-6,9,-6,26,-8,40,2,20,-1,8,-4,-1,-8,12,-3,14,2,18,1,18,-2,19,1,18,-9,12,3,-8,7,5,4,31,-3,21,1,29,-5,-3586,-4;491,413,5,-7,5,-1,3,-2,-8,-1,-2,-8,-2,-4,-3,-2,0,-5,3,-7,9,-2,7,-5,15,-2,15,3,1,2,-2,7,2,11,-8,3,3,7,-7,0,2,9,10,-3,8,4,-7,6,-3,5,-8,-2,-1,-8,-3,7,-1,2,3,4,-2,4,-12,3,-4,9,-6,3,0,3,10,-1,0,7,9,2,8,-1,2,9,-2,7,-10,-1,-8,2,-12,-4,-9,-2,-5,-6,-9,-2,-10,-10,9,-9,-1,-7,11,-12,5,-5;-956,691,-7,-3,-13,3,-8,-1,-14,4,9,3,7,4,10,-2,6,-2,3,-2,7,-4;-1800,715,3600,-7,-11,0,-2,3,-3587,4;-1800,715,1,1,9,0,14,-3,-1,-2,-10,-2,-13,-1,0,7;-905,695,0,-10,13,8,12,-7,-3,-7,10,-7,10,7,7,9,1,11,14,-1,15,-1,13,-5,1,-5,-8,-6,7,-5,-1,-5,-19,-7,-14,-1,-11,3,-3,-5,-9,-9,-3,-4,-12,-7,-14,-1,-8,-4,-1,-6,-11,-2,-13,-8,-10,-11,-4,-8,-1,-12,15,-1,4,-10,5,-7,14,2,19,-4,10,-4,7,-5,12,-3,11,-4,16,-1,11,-1,-1,-8,3,-10,7,-11,15,-10,8,3,5,11,-5,15,-7,6,16,4,11,7,6,7,-1,7,-7,9,-12,7,12,11,-5,9,-3,15,7,3,17,-3,10,-1,9,2,9,-3,12,-6,3,-4,18,0,0,-9,3,-12,9,-2,7,-6,15,6,10,11,6,4,8,-9,13,-12,11,-12,-4,-7,13,-5,9,-6,16,-3,7,-3,4,-8,7,-2,4,-3,1,-12,-7,-3,-7,-4,-17,-3,-12,-9,-17,-1,-22,2,-15,0,-10,-1,-8,-7,-13,-4,-15,-14,-11,-9,8,2,16,13,21,8,15,1,9,-5,-9,-6,3,-11,3,-8,13,-5,17,2,10,11,0,-7,7,-4,-12,-6,-23,-6,-9,-4,-12,-8,-7,1,-1,9,18,8,-16,0,-11,-2,1,-3,-10,-5,-11,-3,-10,-3,-6,-7,-1,-1,0,-6,3,-5,4,0,-1,3,3,-2,-1,-3,-6,-1,-5,0,-8,-2,-4,0,-6,-1,-8,-3,15,2,3,-2,-14,-3,-7,0,0,2,-3,-3,3,-1,-2,-7,-7,-8,-1,3,-2,0,-3,3,2,-5,2,-2,0,-4,-3,-4,-5,-8,-1,1,3,6,-5,4,-2,8,-1,-4,2,-6,-7,1,7,-3,0,-9,3,-1,1,-3,2,-10,-7,-8,-10,-3,-7,-6,-5,0,-5,-4,-1,-3,-11,-7,-6,-5,-4,-6,-2,-7,2,-7,3,-8,5,-7,0,-5,4,-11,0,-7,0,-4,-3,-6,-3,-1,-5,1,-1,4,-4,3,-5,8,-5,8,-2,4,2,7,-2,5,-8,8,-4,2,-10,-5,-2,1,-5,5,-6,2,-11,-1,-9,1,-8,-1,-4,-1,2,-3,0,-4,2,-2,-2,-1,-4,1,-4,-2,-7,0,-7,6,-9,-1,-7,2,-6,-1,-9,-2,-9,-8,-10,-4,-5,-5,-3,-4,0,-7,1,-5,2,-3,-4,-9,-2,-7,-1,-14,-1,-5,2,-5,3,-5,2,-8,7,-7,2,-6,4,-5,11,-2,4,-5,9,3,7,1,8,2,6,2,6,4,3,6,0,8,2,3,7,3,11,2,8,0,6,0,3,-2,0,-5,-6,-5,-2,-7,2,-1,-2,-5,-2,-7,-3,2,-2,0,0,-1,2,-1,0,-2,-2,-5,1,-1,-1,-4,1,-1,-2,-5,-2,-2,-1,-1,-2,-3,3,-2,1,2,3,-2,1,0,2,2,3,0,1,-1,1,0,5,0,5,0,3,1,1,1,3,0,3,-1,2,0,2,1,5,-1,1,-1,3,-2,3,-2,4,-1,3,-3,-1,-1,-1,-2,1,-4,-2,-3,-1,-4,-1,-5,1,-2,0,-5,-1,-1,-1,-4,0,-3,-2,-2,1,-3,1,-2,3,-5,4,-4,5,-4,3,-4,0,-2,4,0,1,0,3,-2,5,1,4,2,6,2,3,3,6,0,-1,-1,6,-1,4,-2,4,-3,3,-2,6,-1,7,7,4,1,0,4,2,8,6,5,6,0,1,2,8,-1,8,5,4,3,4,4,4,0,3,-3,-2,-3,-1,-3,-5,-1,3,-4,0,-6,-5,-5,4,-8,4,0,3,8,-4,3,0,8,12,4,-1,4,4,4,3,-7,7,-1,7,-5,0,-3,9,-1,11,1,5,-4,8,-1,6,3,0,2,12,1,12,0,-8,-3,3,-5,8,0,8,-5,1,-8,5,0,4,-2,7,-4,6,-7,0,-5,4,0,6,-5,4,-3,12,-2,1,2,8,0,10,-2,4,-2,7,-2,11,-8,1,-4,4,0,2,-6,6,-17,5,-2,1,-7,-8,-8,3,-3,18,-1,0,-10,8,6,12,-3,17,-7,5,-5,-2,-6,12,3,19,-5,15,0,15,-8,13,-11,7,-3,9,0,4,-4,3,-12,2,-6,-4,-17,-5,-6,-14,-14,-7,-12,-7,-8,-3,-1,-3,-7,1,-19,-3,-15,-1,-7,-3,-4,-2,-13,-10,-13,-1,-10,-9,-5,-2,-6,-11,0,-15,-4,-8,-4,-11,-3,-11,-8,-9,-10,-1,-7,1,-6,-2,-10,-2,-5,-7,-5,-11,-18,-9,-8,-7,-4,-4,-10,-7,-6,-4,-6,-11,-6,-8,2,-5,-1,-9,5,-7,-1,-6,6,-1,-5,13,-9,-2,-7,7,-4,-1,-5,-9,-13,-15,-5,-20,-2,-11,1,2,-6,-2,-8,2,-5,-6,-3,-11,-2,-9,4,-4,-3,1,-10,7,-3,5,4,3,-6,-9,-3,-8,-6,-1,-10,-3,-5,-9,0,-8,-6,-3,-7,10,-7,10,-2,-4,-9,-12,-6,-6,-12,-9,-4,-4,-4,3,-11,6,-6,-4,1,-9,0,-4,-2,-9,-4,-2,-9,-4,-1,-12,4,-11,7,-12,5,-4,7,3,6,-5,6,-1,17,4,10,11,8,-15,3,9,8,3,17,12,-4,5,21,-7,3,-3,-13,-6,2,3,14,3,19,5,6,-3,10,-1,11,4,1,6,16,7,16,5,15,-3,15,3,8,-1,12,6,13,2,19,3,21,3,22,-1,16,-2,15,-10,5,-1,4,-19,10,-18,11,-8,7,-4,8,1,3,-8,13,-10,18,-9,20,-4,5,-4,7,-7,7,-8,4,4,4,-5,10,3,7,8,6,5,7,-2,5,-4,-5,-6,5,2,2,-1,9,3,2,2,6,4,7,-1,4,6,2,6,4,-1,3,4,1,-1,5,3,3,5,1,4,6,4,5,-4,3,2,6,-2,9,2,2,-2,9,-4,5,-3,3,-2,6,2,2,-2,1,-2,3,-5,3,-5,-1,-2,-3,-4,-3,-2,0,-1,-2,5,-6,-3,-1,-1,-1,-5,-1,-2,6,-1,-2,-3,1,-2,4,-4,1,-3,1,-4,0,0,-2,-2,1,-5,2,-2,3,1,1,0,3,-3,2,-4,2,-3,1,-1,3,-3,2,1,-3,-2,-2,-2,2,-4,1,-1,2,0,3,1,4,-2,1,2,2,-4,3,-4,4,-2,3,-5,4,-5,4,1,2,2,-2,1,1,-2,3,-3,1,-1,-3,-6,1,-3,1,-5,2,-5,0,-3,2,-5,2,-6,0,-5,2,-5,4,-12,11,-5,3,-8,3,-6,-1,-8,-3,-5,-1,-7,2,-7,2,-9,5,-8,1,-11,5,-9,4,-2,3,-6,1,-10,3,-4,4,-11,6,-5,6,-2,5,3,1,-1,3,2,3,0,3,-3,5,-1,4,-3,5,-9,10,-10,7,-5,7,-9,4,-1,2,1,6,-5,3,-6,5,-2,7,-6,0,-6,6,-4,5,-1,3,-5,7,-4,8,1,4,-8,4,-3,-1,-6,3,-1,-4,1,-5,1,-7,4,-4,7,-7,2,-3,1,0,2,-4,1,0,2,-6,3,-3,3,-3,6,-5,3,-10,3,-4,3,-5,0,-5,5,0,4,-5,4,-4,0,-2,-5,-4,-1,0,-3,6,-7,6,-7,5,-5,2,0,8,-1,5,-5,3,-7,5,-1,-2,-2,3,-7,2,-6,6,1,1,4,-1,4,4,0,5,-7,7,-6,3,-4,6,-4,6,-4,8,-4,9,-2,5,-6,6,-5,1,-1,3,-6,1,-3,2,-10,1,-2,2,-1,6,-10,10,-8,14,0,2,-5,3,-7,9,-2,8,-5,5,2,8,0,9,-3,8,4,9,2,18,-2,14,-3,8,-3,5,1,2,15,-4,5,-9,3,3,-2,8,-3,8,-2,0,-19,10,-7,4,-18,4,-6,9,2,6,-13,5,-2,8,-12,7,0,5,-6,4,-9,3,-2,9,-13,8,-6,9,-9,1,-16,0,-12,3,-21,10,-9,2,-18,4,-14,-1,-19,5,-12,4,-11,-2,2,-7,-6,-1,-11,-2,-9,-3,-11,-2,-2,5,5,10,11,3,-3,3,-13,-6,-7,-6,-14,-7,7,-5,-9,-8,-11,-4,-10,-3,-3,-4,-15,-5,-3,-5,-12,-4,-7,0,-9,-2,-10,-4,-9,-3,-17,-3,-1,2,11,4,9,3,11,6,12,1,5,4,14,6,2,2,8,4,1,7,6,6,-12,-3,-3,2,-6,-4,-6,5,-3,-3,-4,5,-10,-4,-6,0,-1,6,2,3,-6,4,-13,-2,-9,5,-6,2,-1,6,-7,4,4,6,8,5,3,5,8,1,7,-1,8,4,8,0,7,3,-2,4,-5,2,7,4,-6,0,-11,-2,-3,-3,-7,3,-15,-2,-14,3,-4,4,-13,6,14,4,22,5,8,0,-1,-5,21,0,-8,6,-12,4,-7,5,-10,4,-14,4,6,5,18,0,12,5,3,5,10,4,10,1,19,5,9,-1,15,6,15,-3,8,-4,4,2,17,-1,-1,-2,16,-2,10,1,21,-3,19,-1,8,-1,13,2,15,-3,11,-2,19,-2,16,-5,10,-1,9,4,12,3,15,-1,15,4,16,3,7,-4,7,2,3,5,7,-1,16,-9,14,7,1,-8,12,2,4,3,12,-1,16,-4,23,-4,14,-2,10,1,13,-5,-14,-5,18,-2,27,1,9,2,10,-6,11,5,-10,4,6,4,12,0,9,1,8,-2,10,-6,11,1,17,-5,16,2,15,0,-2,6,9,2,16,-4,0,-9,6,8,8,0,5,10,-11,6,-12,4,1,11,12,7,13,-1,10,-5,14,-11,-9,-5,19,-2;-1142,731,-5,-4,23,3,13,-5,12,5,9,-4,8,-9,5,4,-7,10,9,1,10,-1,11,-4,6,-10,3,-7,17,-5,18,-5,-1,-4,-16,-1,6,-4,-3,-3,-18,1,-18,3,-11,-1,-19,-3,-30,-2,-13,-1,-6,5,-13,3,-9,-1,-12,8,6,1,16,1,14,0,13,2,-19,2,-22,-1,-14,0,-5,4,23,4,-16,0,-17,3,8,7,7,4,27,6,10,-2;-1045,734,-9,-6,-15,7,3,1,13,0,8,-2;-763,731,0,-3,-10,1,-11,0,-11,-2,-3,1,-11,5,1,4,4,1,23,-1,18,-6;-866,732,8,-7,9,8,26,5,17,-11,-2,-6,20,3,10,4,22,-6,14,-4,1,-5,19,3,10,-7,24,-4,9,-4,9,-9,-18,-5,23,-6,16,-3,15,-9,15,0,-3,-7,-17,-12,-12,4,-16,10,-13,-1,-1,-6,10,-6,14,-5,4,-2,6,-10,-3,-7,-13,2,-25,8,14,-8,11,-6,1,-4,-27,4,-21,6,-12,5,3,3,-15,5,-14,5,0,-3,-29,-2,-9,4,7,7,19,0,20,2,-3,3,4,5,12,10,-2,4,-4,4,-15,5,-21,3,7,2,-11,7,-9,0,-8,4,-5,-3,-18,-2,-36,3,-22,3,-16,1,-8,4,10,4,-14,0,-3,10,8,9,10,4,26,3,-8,-6;-1004,738,12,-2,18,2,3,-3,-10,-5,16,-4,-2,-9,-17,-4,-9,1,-7,3,-25,8,0,3,21,-1,-11,7,11,4;1436,732,-15,0,-21,1,-1,1,9,4,13,1,14,-4,1,-3;-932,728,-11,-8,-11,1,-6,8,0,5,5,5,10,2,21,0,19,-2,-15,-9,-12,-2;-1205,714,-26,-5,-5,4,-23,6,3,3,8,8,9,7,-10,6,34,1,14,-2,25,0,10,-3,11,-4,-13,-3,-24,-7,-13,-7,0,-4;1507,751,-11,-4,-16,1,-19,4,3,3,18,-2,25,-2;-936,750,-6,-4,-14,1,-12,2,5,5,14,2,9,-3,4,-3;1451,756,-8,-8,-37,0,-16,-2,-20,7,5,6,13,2,27,0,36,-5;-985,767,8,-4,0,-6,-5,-7,-16,-1,-11,2,0,5,-16,0,-1,7,11,0,15,3,14,0,1,1;-1082,762,4,-4,9,2,10,0,2,-5,-6,-5,-34,-1,-25,-5,-15,0,-2,3,21,5,-45,-2,-14,2,14,10,9,3,28,-4,18,-6,17,0,-14,9,9,4,10,-1,4,-5;575,707,-6,-1,-32,2,-3,4,-18,3,-1,5,10,2,-1,6,20,8,-9,2,24,8,-3,5,23,5,33,7,33,1,17,4,20,1,7,-4,-7,-3,-36,-5,-30,-4,-31,-10,-15,-10,-16,-9,2,-9,19,-8;-947,771,11,-3,20,0,9,-3,-3,-4,12,-3,6,-2,14,0,14,-1,16,2,20,1,17,-1,10,-4,3,-4,-7,-2,-14,-3,-13,2,-29,-2,-20,0,-17,1,-26,3,-4,6,-1,5,-10,4,-21,1,-11,4,4,4,20,-1;-1162,776,-1,-7,-8,-4,-9,0,-19,-4,-16,-2,-14,2,17,8,21,6,15,0,14,1;-938,775,-5,0,-19,1,-2,2,20,0,7,-2,-1,-1;-1102,777,-19,-3,-14,3,8,4,14,1,14,-2,-3,-3;247,779,-22,-5,-18,3,7,2,-6,4,21,2,4,-4,14,-2;-1097,786,-12,-2,-16,0,0,2,10,3,5,-1,13,-2;-958,781,-15,-3,-8,3,-5,4,0,4,13,-1,5,0,12,-4,-2,-3;-1001,783,4,-4,-16,1,-16,3,-23,1,10,3,-12,2,-1,4,20,-1,27,-4,7,-5;1051,783,-57,-4,19,13,8,1,7,0,26,-6,-3,-4;183,797,32,-7,-25,-4,-5,-8,-9,-2,-5,-8,-12,0,-21,6,9,3,-15,3,-20,9,-8,8,28,3,5,-3,14,0,4,3,15,1,13,-4;254,804,20,-3,-15,-6,-29,-1,-29,2,-2,2,-14,1,-11,4,31,3,14,-2,10,3,25,-3;511,805,-13,-1,-9,-1,-1,-1,-12,-2,-11,2,6,4,-23,0,20,2,15,0,2,-3,6,3,9,1,15,-2,-4,-2;999,789,-21,-1,-28,2,-17,4,-8,7,-13,2,26,7,21,3,20,-6,23,-9,-3,-9;-870,797,12,-4,-14,-3,-18,-7,-18,-1,-21,1,-11,5,1,3,8,3,-19,0,-11,3,-6,5,7,4,7,3,10,1,-4,2,23,1,13,-6,17,-2,16,-2,8,-6;-685,831,27,-1,21,-1,18,-3,0,-2,-24,-5,-25,-2,-9,-2,22,0,-23,-6,-17,-3,-17,-8,-20,-2,-7,-2,-30,-1,14,-1,-7,-2,8,-5,-9,-3,-16,-3,-5,-4,-14,-3,2,-2,17,0,0,-2,-27,-6,-26,3,-29,-2,-15,1,-19,1,-1,5,18,2,-5,7,7,1,26,-5,-13,7,-17,2,8,4,18,2,3,3,-14,4,-4,6,27,-1,8,-1,16,4,-23,1,-35,-1,-18,4,-8,4,-12,3,-2,3,15,2,12,0,19,2,15,4,12,-1,11,-3,8,6,13,1,18,1,30,1,6,-1,29,1,21,0,22,-1;-271,835,63,-8,-19,-4,-38,0,-54,-1,5,-2,35,1,31,-3,19,3,8,-4,-11,-5,26,3,48,4,30,-2,6,-4,-41,-7,-5,-3,-32,-1,23,-1,-12,-7,-8,-6,0,-12,12,-6,-15,-1,-17,-3,19,-5,2,-9,-11,0,13,-9,-22,-1,12,-4,-4,-3,-14,-2,-14,0,13,-7,0,-4,-20,4,-5,-3,14,-2,13,-6,3,-8,-17,-2,-8,4,-12,5,3,-6,-12,-6,27,0,14,-1,-27,-8,-27,-8,-30,-4,-11,0,-10,-4,-14,-10,-22,-7,-6,-1,-14,-2,-14,-2,-9,-7,0,-7,-5,-6,-16,-8,4,-8,-5,-8,-5,-10,-14,-1,-15,9,-20,0,-9,5,-7,10,-17,12,-5,7,-2,9,-14,9,4,7,-7,4,10,12,15,3,4,4,2,8,-11,-3,-6,-2,-9,-1,-12,3,-1,7,4,5,10,0,20,-2,-17,6,-9,3,-10,-1,-8,3,11,9,-6,4,-8,7,-12,10,-13,4,0,4,-27,6,-21,1,-27,-1,-24,0,-12,3,-17,6,26,3,20,1,-42,2,-23,4,1,4,38,5,37,5,4,4,-27,3,9,4,34,7,15,1,-4,5,23,2,31,2,31,0,11,-3,26,5,24,-3,14,-1,21,-3,-24,5,1,4,34,6,35,0,13,3,35,1,80,-1', onPick: id => { st.sel = id; if (st.src !== 'tle') setSrc('tle'); save(); renderAll(); if (navigator.vibrate) navigator.vibrate(15); } });
+  if (v === 'globe') globe.resize();
+  renderAll();
+}
+
+// ---------- sky dial ----------
+const CX = 200, CY = 200, RR = 168, P = (az, el) => { const r = RR * (90 - Math.max(el, 0)) / 90, a = az * LA.D2R; return [CX + r * Math.sin(a), CY - r * Math.cos(a)]; };
+function drawDial(s, r) {
+  if (st.view !== 'sky') return;
+  let o = `<defs><radialGradient id="dg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--card2)"/><stop offset="1" stop-color="var(--card)"/></radialGradient></defs><circle cx="${CX}" cy="${CY}" r="${RR}" fill="url(#dg)" stroke="var(--line)" stroke-width="1.5"/>`;
+  for (const e of [30, 60]) o += `<circle cx="${CX}" cy="${CY}" r="${RR * (90 - e) / 90}" fill="none" stroke="var(--line)"/><text x="${CX + 4}" y="${CY - RR * (90 - e) / 90 - 4}" font-size="11" fill="var(--faint)">${e}°</text>`;
+  for (let a = 0; a < 360; a += 30) { const [x, y] = P(a, 0), [x2, y2] = P(a, 82); o += `<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="var(--line)"/>`; }
+  for (const [a, t] of [[0, 'north'], [90, 'east'], [180, 'south'], [270, 'west']]) { const rr = RR + 15, x = CX + rr * Math.sin(a * LA.D2R), y = CY - rr * Math.cos(a * LA.D2R) + 5; o += `<text x="${x}" y="${y}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${T(t)}</text>`; }
+  const arc = []; for (let l = -180; l <= 180; l += 1) { const L = LA.look(s, LA.geoNominalEcef(l)); if (L.el >= 0) arc.push(P(L.az, L.el)); }
+  if (arc.length) o += `<polyline fill="none" stroke="var(--acc)" stroke-opacity=".55" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round" points="${arc.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`;
+  if (st.src === 'tle') for (const [id, p] of pos) { if (p.el < 0 || id === st.sel) continue; const [x, y] = P(p.az, p.el); o += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="var(--mute)" opacity=".7"/>`; }
+  if (r && r.sun.el > 0) { const [x, y] = P(r.sun.az, r.sun.el); o += `<circle cx="${x}" cy="${y}" r="12" fill="#fbbf24" opacity=".25"/><circle cx="${x}" cy="${y}" r="7" fill="#fbbf24"/>`; }
+  if (r && r.elGeo > -1) { const [x, y] = P(r.azTrue, r.elGeo); o += `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round"/><circle cx="${x}" cy="${y}" r="16" fill="var(--acc)" opacity=".18"/><circle cx="${x}" cy="${y}" r="8" fill="var(--acc)" stroke="var(--card)" stroke-width="3"/>`; }
+  if (aim.on && aim.az != null) {
+    const [x, y] = P(aim.az, aim.el == null ? 0 : aim.el), hd = P(aim.az, -1);
+    o += `<line x1="${CX}" y1="${CY}" x2="${hd[0]}" y2="${hd[1]}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 4"/><circle cx="${x}" cy="${y}" r="13" fill="none" stroke="var(--ink)" stroke-width="2.5"/><line x1="${x - 18}" y1="${y}" x2="${x + 18}" y2="${y}" stroke="var(--ink)" stroke-width="1.5"/><line x1="${x}" y1="${y - 18}" x2="${x}" y2="${y + 18}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  }
+  $('dial').innerHTML = o;
+}
+
+// ---------- pointing aid (device orientation) ----------
+const aim = { on: false, az: null, el: null, sx: 0, sy: 0, se: null, iosOff: null, src: '', lock: null, hit: false };
+function rotVec(a, b, g, v) {   // W3C device orientation: R = Rz(alpha)·Rx(beta)·Ry(gamma), device -> earth (E,N,U)
+  const [ca, sa, cb, sb, cg, sg] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(g), Math.sin(g)];
+  const y1 = [cg * v[0] + sg * v[2], v[1], -sg * v[0] + cg * v[2]];
+  const x1 = [y1[0], cb * y1[1] - sb * y1[2], sb * y1[1] + cb * y1[2]];
+  return [ca * x1[0] - sa * x1[1], sa * x1[0] + ca * x1[1], x1[2]];
+}
+function onOri(e) {
+  if (e.alpha == null || e.beta == null) return;
+  aim.got = true;
+  let alpha = e.alpha;
+  if (e.webkitCompassHeading != null) {   // iOS: alpha is relative; calibrate with compass heading while roughly flat
+    if (Math.abs(e.beta) < 40 && Math.abs(e.gamma) < 40) { const off = LA.norm180(e.alpha - (360 - e.webkitCompassHeading)); aim.iosOff = aim.iosOff == null ? off : aim.iosOff + LA.norm180(off - aim.iosOff) * 0.2; }
+    if (aim.iosOff == null) aim.iosOff = LA.norm180(e.alpha - (360 - e.webkitCompassHeading));
+    alpha = e.alpha - aim.iosOff; aim.src = 'ios';
+  } else if (!(e.absolute || e.type === 'deviceorientationabsolute')) { aim.src = 'relative'; }
+  else aim.src = 'abs';
+  const D = LA.D2R, upright = Math.abs(e.beta) > 50;
+  const v = rotVec(alpha * D, e.beta * D, (e.gamma || 0) * D, upright ? [0, 0, -1] : [0, 1, 0]);   // back camera when upright, top edge when flat
+  const magAz = LA.norm360(Math.atan2(v[0], v[1]) * LA.R2D), el = Math.asin(Math.max(-1, Math.min(1, v[2]))) * LA.R2D;
+  const k = 0.25, rad = magAz * D; aim.sx += (Math.sin(rad) - aim.sx) * k; aim.sy += (Math.cos(rad) - aim.sy) * k;
+  aim.se = aim.se == null ? el : aim.se + (el - aim.se) * k;
+  const decl = last ? last.s.magVar : 0;
+  aim.az = LA.norm360(Math.atan2(aim.sx, aim.sy) * LA.R2D + decl); aim.el = upright ? aim.se : null; aim.upright = upright;
+  if (!aim.raf) aim.raf = requestAnimationFrame(() => { aim.raf = 0; updateGuide(); if (last) drawDial(last.s, last.r); });
+}
+function updateGuide() {
+  if (!aim.on || !last) return;
+  const g = $('guide'), r = last.r;
+  if (aim.src === 'relative') { $('gTurn').textContent = '—'; $('gTilt').textContent = '—'; $('gNote').textContent = T('noCompass'); }
+  const dAz = aim.az == null ? null : LA.norm180(r.azTrue - aim.az), target = r.elApp, dEl = aim.el == null ? null : target - aim.el;
+  if (dAz != null && aim.src !== 'relative') { $('gTurnK').textContent = Math.abs(dAz) < 2 ? T('az') : T(dAz > 0 ? 'turnRight' : 'turnLeft'); $('gTurn').textContent = Math.abs(dAz) < 2 ? T('onTarget') : f(Math.abs(dAz), 1) + '°'; }
+  if (dEl != null) { $('gTiltK').textContent = Math.abs(dEl) < 1 ? T('el') : T(dEl > 0 ? 'tiltUp' : 'tiltDown'); $('gTilt').textContent = Math.abs(dEl) < 1 ? T('onTarget') : f(Math.abs(dEl), 1) + '°'; }
+  else { $('gTiltK').textContent = T('tilt'); $('gTilt').textContent = T('holdUpright'); }
+  if (aim.src !== 'relative') $('gNote').textContent = aim.upright ? T('camAim', { a: f(aim.az, 1), e: f(aim.el, 1), ta: f(r.azTrue, 1), te: f(target, 1) }) : T('flatAim', { a: f(aim.az, 1) });
+  const hit = dAz != null && Math.abs(dAz) < 2 && dEl != null && Math.abs(dEl) < 1 && aim.src !== 'relative';
+  g.classList.toggle('hit', hit); if (hit && !aim.hit && navigator.vibrate) navigator.vibrate(80); aim.hit = hit;
+}
+async function togglePoint() {
+  if (aim.on) { aim.on = false; removeEventListener('deviceorientationabsolute', onOri); removeEventListener('deviceorientation', onOri); $('guide').classList.remove('on'); $('pointTxt').textContent = T('pointStart'); $('pointBtn').classList.remove('off'); if (aim.lock) { aim.lock.release().catch(() => { }); aim.lock = null; } if (last) drawDial(last.s, last.r); return; }
+  if (typeof DeviceOrientationEvent === 'undefined') { $('guide').classList.add('on'); $('gNote').textContent = T('noSensors'); return; }
+  let perm = 'granted';
+  try { if (typeof DeviceOrientationEvent.requestPermission === 'function') perm = await DeviceOrientationEvent.requestPermission(); } catch (e) { perm = 'error'; }
+  aim.on = true; aim.az = aim.el = aim.se = aim.iosOff = null; aim.sx = aim.sy = 0;
+  if ('ondeviceorientationabsolute' in window) addEventListener('deviceorientationabsolute', onOri); else addEventListener('deviceorientation', onOri);
+  $('guide').classList.add('on'); $('pointTxt').textContent = T('pointStop'); $('pointBtn').classList.add('off'); $('gNote').textContent = T('waitSensors');
+  if (st.view !== 'sky') setView('sky');   // the dial shows the phone's aim against the target
+  aim.got = false; setTimeout(() => { if (aim.on && !aim.got) $('gNote').textContent = T('noOriData') + (perm !== 'granted' ? T('noOriPerm') : ''); }, 3000);
+  try { if (navigator.wakeLock) aim.lock = await navigator.wakeLock.request('screen'); } catch (e) { }
+}
+
+// ---------- satellite sheet ----------
+function renderList() {
+  const q = $('q').value.trim().toUpperCase(), vo = $('visOnly').checked;
+  const rows = sats.map(s => ({ s, p: pos.get(s.id) })).filter(({ s, p }) => p && (!vo || p.el > 0) && (!q || s.name.toUpperCase().includes(q) || s.id.includes(q))).sort((a, b) => b.p.sp.lon - a.p.sp.lon);
+  $('list').innerHTML = rows.slice(0, 300).map(({ s, p }) => `<div class="item${s.id === st.sel ? ' sel' : ''}" data-id="${esc(s.id)}" role="button" tabindex="0"><div class="nm">${esc(s.name)}</div><div class="ae2">${f(p.az, 1)}° / ${f(p.el, 1)}°</div><div class="sub">${ew(p.sp.lon)} · ${esc(s.id)}</div><div class="sub ae2">${esc(T('azEl'))}</div></div>`).join('') || `<div class="item"><div class="sub">${esc(sats.length ? T('noMatch') : T('noTle'))}</div></div>`;
+}
+function setSrc(src) { st.src = src; save(); $('srcTle').setAttribute('aria-pressed', src === 'tle'); $('srcSlot').setAttribute('aria-pressed', src === 'slot'); $('tlePane').hidden = src !== 'tle'; $('tlePane').style.display = src === 'tle' ? 'flex' : 'none'; $('slotPane').hidden = src !== 'slot'; renderAll(); }
+
+// ---------- wire up ----------
+for (const k of ['lat', 'lon', 'hgt', 'off', 'mag', 'slot']) if (st[k] != null) $(k).value = st[k];
+$('magAuto').checked = st.magAuto; $('visOnly').checked = st.visOnly; $('mag').disabled = st.magAuto;
+$('slots').innerHTML = SLOTS.map(([n, l]) => `<button data-l="${l}">${esc(n)}</button>`).join('');
+$('slots').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('slot').value = b.dataset.l; save(); renderAll(); $('satDlg').close(); } });
+for (const k of ['lat', 'lon', 'hgt']) $(k).addEventListener('input', () => { if (st.loc === 'gps') setLoc('manual'); if (k !== 'hgt') st.siteName = ''; save(); computeAll(); renderAll(); renderSaved(); });
+$('place').addEventListener('input', () => { clearTimeout(placeTimer); placeTimer = setTimeout(searchPlace, 400); });
+$('places').addEventListener('click', e => { const b = e.target.closest('.res'); if (!b) return; useSite({ lat: +b.dataset.lat, lon: +b.dataset.lon, h: b.dataset.h === '' || b.dataset.h == null ? null : +b.dataset.h }, b.dataset.n); $('places').innerHTML = ''; $('place').value = ''; });
+$('saved').addEventListener('click', e => { const u = e.target.closest('[data-i]'), d = e.target.closest('[data-d]');
+  if (u) { const x = sites[+u.dataset.i]; useSite(x, x.name); }
+  if (d) { sites.splice(+d.dataset.d, 1); LS.set('la.m.sites', sites); renderSaved(); } });
+$('demBtn').addEventListener('click', siteHeight);
+$('saveSite').addEventListener('click', () => { $('saveRow').hidden = !$('saveRow').hidden; if (!$('saveRow').hidden) { $('siteName').value = st.loc === 'gps' ? T('mySite', { d: new Date().toLocaleDateString() }) : (st.siteName || ''); $('siteName').focus(); } });
+$('saveOk').addEventListener('click', () => { const s = site(new Date()), name = $('siteName').value.trim() || T('siteN', { n: sites.length + 1 }); if (!s) return;
+  sites = sites.filter(x => x.name !== name); sites.unshift({ name, lat: s.lat, lon: s.lon, h: s.h }); LS.set('la.m.sites', sites.slice(0, 30));
+  $('saveRow').hidden = true; if (st.loc === 'manual') st.siteName = name; save(); renderSaved(); gpsStatus(); locMsg(T('savedOk', { n: name }) + (st.loc === 'gps' ? T('savedGps') : '')); });
+for (const k of ['off', 'mag', 'slot']) $(k).addEventListener('input', () => { save(); renderAll(); });
+$('magAuto').addEventListener('change', () => { $('mag').disabled = $('magAuto').checked; save(); renderAll(); });
+$('live').addEventListener('change', () => { $('tm').disabled = $('live').checked; if (!$('live').checked && !$('tm').value) $('tm').value = new Date().toISOString().slice(0, 16); computeAll(); renderAll(); });
+$('tm').addEventListener('input', () => { computeAll(); renderAll(); });
+$('locGps').addEventListener('click', () => setLoc('gps')); $('locMan').addEventListener('click', () => setLoc('manual'));
+$('satBtn').addEventListener('click', () => { computeAll(); renderList(); $('satDlg').showModal(); });
+$('setBtn').addEventListener('click', () => $('setDlg').showModal()); $('gpsChip').addEventListener('click', () => { $('setDlg').showModal(); $('locGps').scrollIntoView({ block: 'nearest' }); }); $('dataChip').addEventListener('click', () => { $('setDlg').showModal(); $('dataMsg').scrollIntoView({ block: 'nearest' }); });
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+$('q').addEventListener('input', renderList); $('visOnly').addEventListener('change', () => { save(); renderList(); });
+$('list').addEventListener('click', e => { const it = e.target.closest('.item[data-id]'); if (it) { st.sel = it.dataset.id; save(); renderAll(); $('satDlg').close(); } });
+$('srcTle').addEventListener('click', () => { setSrc('tle'); renderList(); }); $('srcSlot').addEventListener('click', () => setSrc('slot'));
+$('pointBtn').addEventListener('click', togglePoint);
+$('refresh').addEventListener('click', () => { $('dataMsg').textContent = T('checking'); loadData(true); });
+$('file').addEventListener('change', async e => { const fl = e.target.files[0]; if (!fl) return; if (useText(await fl.text(), { at: Date.now(), src: 'file ' + fl.name })) { dataErr = ''; setSrc('tle'); } else { dataErr = T('badFile'); } renderAll(); });
+$('vGlobe').addEventListener('click', () => setView('globe')); $('vSky').addEventListener('click', () => setView('sky'));
+$('recenter').addEventListener('click', () => globe && globe.recenter());
+for (const [id, l] of [['lngTr', 'tr'], ['lngEn', 'en']]) $(id).addEventListener('click', () => { st.lang = T.lang = l; save(); applyLang(); renderAll(); renderSaved(); });
+for (const [id, v] of [['thAuto', 'auto'], ['thLight', 'light'], ['thDark', 'dark']]) $(id).addEventListener('click', () => { st.theme = v; save(); applyTheme(); renderAll(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+applyTheme(); applyLang();
+const cached = LS.get('la.m.tle'); if (cached && cached.text) useText(cached.text, { at: cached.at, src: cached.src });
+setSrc(st.src); setLoc(st.loc); setView(st.view === 'sky' ? 'sky' : 'globe');
+loadData(false).then(() => { if (!sats.length && st.src === 'tle') setSrc('slot'); });
+setInterval(() => { if ($('live').checked) { computeAll(); renderAll(); } }, 5000);
+setInterval(() => loadData(false), 30 * 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { computeAll(); renderAll(); loadData(false); } });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+</script>
+</body>
+</html>
