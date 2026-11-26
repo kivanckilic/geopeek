@@ -55,7 +55,12 @@ button{font:inherit;color:inherit}
 .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--faint)}.dot.ok{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent)}.dot.bad{background:var(--bad)}.dot.wait{background:var(--wait)}
 
 /* satellite picker */
-.satcard{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer;min-height:64px}
+.satbar{display:flex;gap:8px;align-items:stretch}
+.navbtn{flex:none;width:56px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--acc);padding:6px 2px}
+.navbtn small{font-size:10.5px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+.navbtn:active{transform:scale(.96)}.navbtn:disabled{opacity:.35;cursor:default}
+.hero.stats{padding:10px}.hero.stats .minor{margin-top:0}
+.satcard{flex:1;width:auto;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer;min-height:64px}
 .satcard .ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--accSoft);color:var(--acc)}
 .satcard .tx{flex:1}.satcard b{display:block;font-size:17px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.satcard small{display:block;font-size:13px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .satcard .chev{color:var(--faint)}
@@ -168,11 +173,14 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
 
 <main class="wrap"><div class="cols">
   <div>
-    <button class="satcard" id="satBtn" aria-haspopup="dialog">
-      <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7 9 3 5 7l4 4M17 11l4 4-4 4-4-4M8 12l4 4M16 8l3-3"/><path d="m9 15-3 3M3 21c0-3 1-4 3-5"/></svg></span>
-      <span class="tx"><b id="satName" data-t="selectSat">Select satellite</b><small id="satSub" data-t="tapToChoose">Tap to choose</small></span>
-      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 6 6 6-6 6"/></svg>
-    </button>
+    <div class="satbar">
+      <button class="navbtn" id="prevSat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg><small id="prevLon">—</small></button>
+      <button class="satcard" id="satBtn" aria-haspopup="dialog">
+        <span class="tx"><b id="satName" data-t="selectSat">Select satellite</b><small id="satSub" data-t="tapToChoose">Tap to choose</small></span>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button class="navbtn" id="nextSat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg><small id="nextLon">—</small></button>
+    </div>
 
     <section class="hero" id="hero" aria-live="polite">
       <div class="ae">
@@ -186,11 +194,6 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
             <svg class="g" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 36H36" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/><path d="M36 36A32 32 0 0 0 4 4" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5" transform="translate(0 0)"/><line id="elLine" x1="4" y1="36" x2="36" y2="36" stroke="#7ee2a8" stroke-width="2.6" stroke-linecap="round"/><circle cx="4" cy="36" r="2.4" fill="#fff"/></svg></div>
           <div class="v num" id="vEl">—</div><div class="s num" id="vElS">—</div>
         </div>
-      </div>
-      <div class="minor">
-        <div class="m"><div class="k" data-t="skew">LNB skew</div><div class="v num" id="vSk">—</div><div class="s" id="vSkS">—</div></div>
-        <div class="m"><div class="k" data-t="range">Range</div><div class="v num" id="vRg">—</div><div class="s" id="vRgS">—</div></div>
-        <div class="m"><div class="k" data-t="motor">Motor</div><div class="v num" id="vHa">—</div><div class="s" id="vHaS">DiSEqC</div></div>
       </div>
     </section>
 
@@ -208,6 +211,14 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
       </div>
       <div class="stage" id="skyStage" hidden><svg id="dial" viewBox="0 0 400 400" role="img" data-ta="skyAria"></svg></div>
       <div class="cap" id="vizCap" data-t="globeHint"></div>
+    </section>
+
+    <section class="hero stats">
+      <div class="minor">
+        <div class="m"><div class="k" data-t="skew">LNB skew</div><div class="v num" id="vSk">—</div><div class="s" id="vSkS">—</div></div>
+        <div class="m"><div class="k" data-t="range">Range</div><div class="v num" id="vRg">—</div><div class="s" id="vRgS">—</div></div>
+        <div class="m"><div class="k" data-t="motor">Motor</div><div class="v num" id="vHa">—</div><div class="s" id="vHaS">DiSEqC</div></div>
+      </div>
     </section>
   </div>
 
@@ -1060,6 +1071,7 @@ function renderAll() {
   $('vSk').textContent = (r.skew > 0 ? '+' : '') + f(r.skew, 1) + '°'; $('vSkS').textContent = Math.abs(r.skew) < .05 ? T('noRot') : T(r.skew > 0 ? 'cwS' : 'ccwS');
   $('vRg').textContent = Math.round(r.range).toLocaleString(T.lang); $('vRgS').textContent = `km · ${f(r.delay2, 0)} ms`;
   $('vHa').textContent = `${f(Math.abs(r.polar.hourAngle), 1)}°${r.polar.hourAngle >= 0 ? T('east') : T('west')}`;
+  renderNav(s);
   details(s, c, r, d); drawDial(s, r); updGlobe(s, c, d); updateGuide();
 }
 function details(s, c, r, d) {
@@ -1173,6 +1185,37 @@ function renderList() {
   const rows = sats.map(s => ({ s, p: pos.get(s.id) })).filter(({ s, p }) => p && (!vo || p.el > 0) && (!q || s.name.toUpperCase().includes(q) || s.id.includes(q))).sort((a, b) => b.p.sp.lon - a.p.sp.lon);
   $('list').innerHTML = rows.slice(0, 300).map(({ s, p }) => `<div class="item${s.id === st.sel ? ' sel' : ''}" data-id="${esc(s.id)}" role="button" tabindex="0"><div class="nm">${esc(s.name)}</div><div class="ae2">${f(p.az, 1)}° / ${f(p.el, 1)}°</div><div class="sub">${ew(p.sp.lon)} · ${esc(s.id)}</div><div class="sub ae2">${esc(T('azEl'))}</div></div>`).join('') || `<div class="item"><div class="sub">${esc(sats.length ? T('noMatch') : T('noTle'))}</div></div>`;
 }
+// ---------- previous / next satellite along the belt ----------
+// "Right" is as seen by someone behind the dish looking at the satellite: west in the northern hemisphere
+// (facing south), east in the southern hemisphere (facing north). Co-located satellites are stepped one by one.
+function neighbours(s) {
+  if (!s) return { left: null, right: null };
+  const vo = $('visOnly').checked, key = lon => LA.norm180(lon - s.lon);
+  const list = sats.map(x => ({ x, p: pos.get(x.id) })).filter(o => o.p && (!vo || o.p.el > 0))
+    .sort((a, b) => key(a.p.sp.lon) - key(b.p.sp.lon) || a.x.name.localeCompare(b.x.name));   // west -> east
+  let west = null, east = null;
+  const i = st.src === 'tle' ? list.findIndex(o => o.x.id === st.sel) : -1;
+  if (i >= 0) { west = list[i - 1] || null; east = list[i + 1] || null; }
+  else {
+    const k0 = key(st.src === 'slot' ? (+$('slot').value || 0) : s.lon);
+    const j = list.findIndex(o => key(o.p.sp.lon) > k0); east = j >= 0 ? list[j] : null; west = j > 0 ? list[j - 1] : j < 0 ? list[list.length - 1] || null : null;
+  }
+  return s.lat >= 0 ? { left: east, right: west } : { left: west, right: east };
+}
+let nav = { left: null, right: null };
+function renderNav(s) {
+  nav = neighbours(s);
+  for (const [side, btn, lab] of [['left', 'prevSat', 'prevLon'], ['right', 'nextSat', 'nextLon']]) {
+    const o = nav[side]; $(btn).disabled = !o; $(lab).textContent = o ? ew(o.p.sp.lon) : '—';
+    $(btn).setAttribute('aria-label', o ? `${o.x.name} · ${ew(o.p.sp.lon)}` : '—'); $(btn).title = o ? o.x.name : '';
+  }
+}
+function step(side) {
+  const o = nav[side]; if (!o) return;
+  st.sel = o.x.id; if (st.src !== 'tle') { st.src = 'tle'; setSrc('tle'); }
+  save(); renderAll(); if (navigator.vibrate) navigator.vibrate(10);
+  if (globe && st.view === 'globe' && globe.zoomed) globe.focus(o.p.d);
+}
 function setSrc(src) { st.src = src; save(); $('srcTle').setAttribute('aria-pressed', src === 'tle'); $('srcSlot').setAttribute('aria-pressed', src === 'slot'); $('tlePane').hidden = src !== 'tle'; $('tlePane').style.display = src === 'tle' ? 'flex' : 'none'; $('slotPane').hidden = src !== 'slot'; renderAll(); }
 
 // ---------- wire up ----------
@@ -1197,6 +1240,7 @@ $('live').addEventListener('change', () => { $('tm').disabled = $('live').checke
 $('tm').addEventListener('input', () => { computeAll(); renderAll(); });
 $('locGps').addEventListener('click', () => setLoc('gps')); $('locMan').addEventListener('click', () => setLoc('manual'));
 $('satBtn').addEventListener('click', () => { computeAll(); renderList(); $('satDlg').showModal(); });
+$('prevSat').addEventListener('click', () => step('left')); $('nextSat').addEventListener('click', () => step('right'));
 $('setBtn').addEventListener('click', () => $('setDlg').showModal()); $('gpsChip').addEventListener('click', () => { $('setDlg').showModal(); $('locGps').scrollIntoView({ block: 'nearest' }); }); $('dataChip').addEventListener('click', () => { $('setDlg').showModal(); $('dataMsg').scrollIntoView({ block: 'nearest' }); });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
