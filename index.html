@@ -101,6 +101,10 @@ button{font:inherit;color:inherit}
 .space{background:radial-gradient(90% 90% at 50% 40%,#0d1e36 0%,#060c18 55%,#03060d 100%)}
 #globe{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
 #globe:active{cursor:grabbing}
+/* On touch screens the outer strips of the globe scroll the page, so a thumb near the screen edge never grabs the globe. */
+.lane{display:none}
+@media(pointer:coarse){.lane{display:block;position:absolute;top:0;bottom:0;width:15%;touch-action:pan-y;z-index:1}.lane.l{left:0}.lane.r{right:0}}
+.zoombtns{z-index:2}
 .legend{position:absolute;left:10px;right:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:rgba(220,235,255,.75);pointer-events:none}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
 .cap{font-size:12px;color:var(--mute);padding:0 14px 12px}
@@ -206,6 +210,7 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
       </div>
       <div class="stage space" id="globeStage">
         <canvas id="globe" role="img" data-ta="globeAria"></canvas>
+        <div class="lane l" aria-hidden="true"></div><div class="lane r" aria-hidden="true"></div>
         <div class="zoombtns"><button id="zIn" aria-label="+">+</button><button id="zOut" aria-label="−">−</button></div>
         <div class="legend"><span><i style="background:#8ff0c0"></i><span data-t="legendVis"></span></span><span><i style="background:rgba(140,160,190,.7)"></i><span data-t="legendHid"></span></span><span><i style="background:#ffcf5a"></i><span data-t="legendYou"></span></span></div>
       </div>
@@ -280,6 +285,9 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
   <div class="sec" data-t="orbData"></div>
   <div class="msg" id="dataMsg"></div>
   <div class="btns"><button class="btn" id="refresh" data-t="checkUpd"></button><label class="btn" style="margin:0;color:var(--ink)"><span data-t="loadFile"></span><input type="file" id="file" accept=".txt,.tle,text/plain" hidden></label></div>
+  <div class="sec" data-t="appSec"></div>
+  <div class="msg" id="updMsg" aria-live="polite"></div>
+  <div class="btns"><button class="btn" id="appUpd" data-t="appUpd"></button><button class="btn pri" id="appGet" data-t="appGet" hidden></button></div>
 </div></dialog>
 
 <script>/*!
@@ -501,7 +509,7 @@ const I18N = {
     location: 'Location', myLoc: 'My location', otherLoc: 'Another location', placeSearch: 'Search a place or type coordinates', placeHolder: 'e.g. Gölbaşı, Ankara  or  39.78, 32.81',
     saved: 'Saved locations', lat: 'Latitude', lon: 'Longitude', hgt: 'Height (m)', off: 'Dish offset angle (°)', coordHint: 'Decimal or DMS (39 55 20 N). Typing coordinates switches to Another location.',
     demBtn: 'Get terrain height', saveSite: 'Save this location', siteName: 'Name, e.g. Gölbaşı station', save: 'Save', mag: 'Magnetic declination (°, + East)', magAuto: 'From WMM2025',
-    time: 'Time (UTC)', live: 'Live (now)', orbData: 'Orbital data', checkUpd: 'Check for update', loadFile: 'Load TLE file', appearance: 'Appearance', language: 'Language',
+    time: 'Time (UTC)', live: 'Live (now)', orbData: 'Orbital data', checkUpd: 'Refresh data', loadFile: 'Load TLE file', appearance: 'Appearance', language: 'Language',
     theme: 'Theme', themeAuto: 'Auto', themeLight: 'Light', themeDark: 'Dark',
     waitGps: 'Waiting for GPS…', noGeo: 'This browser has no location service.', usingName: 'Using “{n}”.', usingCoords: 'Using the coordinates below. Search a place, pick a saved location or type coordinates.',
     permDenied: 'Location permission denied — allow it in the browser/app settings, or choose another location below.', noFix: 'No GPS fix yet, still trying…', locUnavail: 'Location unavailable: {m}',
@@ -511,6 +519,9 @@ const I18N = {
     demLook: 'Looking up terrain height…', demOk: 'Terrain height {h} m (Copernicus DEM).', demFail: 'Terrain height lookup failed (offline?). Enter the height manually.',
     savedOk: 'Saved “{n}”.', savedGps: ' Switch to Another location to use it later.', mySite: 'My site {d}', siteN: 'Site {n}', del: 'Delete {n}',
     lastDl: 'Last download was {a} ago; CelesTrak allows one per 2 h.', dlFail: 'Download failed ({m}). Using cached data.', noTleYet: 'No TLE data yet. Use an orbital slot or load a TLE file.',
+    appSec: 'App', appUpd: 'Check for updates', appGet: 'Download update', verNow: 'Installed version {v}.', verWeb: 'Web version — it refreshes itself when a new one is published.',
+    updNone: 'Up to date (version {v}).', updAvail: 'New version available: {v} (installed {c}).', updHow: 'The download opens in your browser — tap the file when it finishes and choose Update.',
+    updWebOk: 'Up to date.', updWebNew: 'New version found — reloading…', updErr: 'Could not check — no internet connection?',
     dataFrom: '{n} GEO element sets from {s}, downloaded {a} ago.', srcServer: 'the daily server update', srcCt: 'CelesTrak (direct)', checking: 'Checking…', badFile: 'No valid TLE sets in that file.',
     gPointing: 'Pointing', gPath: 'Path', gPolar: 'Polar mount / DiSEqC', gSun: 'Sun', gOrbit: 'Orbit (TLE)', gElev: 'Elevation and path', gPol: 'Polarisation (fixed antenna)',
     trueAz: 'True azimuth', compAz: 'Compass azimuth', compGon: 'Compass (400 gon)', magDecl: 'Magnetic declination', appEl: 'Apparent elevation', geoEl: 'Geometric elevation (WGS84)',
@@ -558,7 +569,7 @@ const I18N = {
     location: 'Konum', myLoc: 'Konumum', otherLoc: 'Başka konum', placeSearch: 'Yer arayın veya koordinat yazın', placeHolder: 'örn. Gölbaşı, Ankara  veya  39.78, 32.81',
     saved: 'Kayıtlı konumlar', lat: 'Enlem', lon: 'Boylam', hgt: 'Yükseklik (m)', off: 'Ofset çanak açısı (°)', coordHint: 'Ondalık veya DMS (39 55 20 N). Koordinat yazmak Başka konum’a geçirir.',
     demBtn: 'Arazi yüksekliğini al', saveSite: 'Bu konumu kaydet', siteName: 'Ad, örn. Gölbaşı istasyonu', save: 'Kaydet', mag: 'Manyetik sapma (°, + Doğu)', magAuto: 'WMM2025’ten hesapla',
-    time: 'Zaman (UTC)', live: 'Canlı (şimdi)', orbData: 'Yörünge verisi', checkUpd: 'Güncellemeyi denetle', loadFile: 'TLE dosyası yükle', appearance: 'Görünüm', language: 'Dil',
+    time: 'Zaman (UTC)', live: 'Canlı (şimdi)', orbData: 'Yörünge verisi', checkUpd: 'Veriyi yenile', loadFile: 'TLE dosyası yükle', appearance: 'Görünüm', language: 'Dil',
     theme: 'Tema', themeAuto: 'Otomatik', themeLight: 'Açık', themeDark: 'Koyu',
     waitGps: 'GPS bekleniyor…', noGeo: 'Bu tarayıcıda konum servisi yok.', usingName: '“{n}” kullanılıyor.', usingCoords: 'Aşağıdaki koordinatlar kullanılıyor. Yer arayın, kayıtlı konum seçin veya koordinat yazın.',
     permDenied: 'Konum izni reddedildi — tarayıcı/uygulama ayarlarından izin verin veya aşağıdan başka konum seçin.', noFix: 'Henüz GPS konumu yok, deneniyor…', locUnavail: 'Konum alınamıyor: {m}',
@@ -568,6 +579,9 @@ const I18N = {
     demLook: 'Arazi yüksekliği sorgulanıyor…', demOk: 'Arazi yüksekliği {h} m (Copernicus DEM).', demFail: 'Arazi yüksekliği alınamadı (çevrimdışı?). Yüksekliği elle girin.',
     savedOk: '“{n}” kaydedildi.', savedGps: ' Daha sonra kullanmak için Başka konum’a geçin.', mySite: 'Konumum {d}', siteN: 'Konum {n}', del: '{n} sil',
     lastDl: 'Son indirme {a} önceydi; CelesTrak 2 saatte bir izin veriyor.', dlFail: 'İndirme başarısız ({m}). Önbellekteki veri kullanılıyor.', noTleYet: 'Henüz TLE verisi yok. Yörünge slotu kullanın veya TLE dosyası yükleyin.',
+    appSec: 'Uygulama', appUpd: 'Güncellemeleri denetle', appGet: 'Güncellemeyi indir', verNow: 'Yüklü sürüm {v}.', verWeb: 'Web sürümü — yeni sürüm yayınlanınca kendiliğinden yenilenir.',
+    updNone: 'Uygulama güncel (sürüm {v}).', updAvail: 'Yeni sürüm var: {v} (yüklü: {c}).', updHow: 'İndirme tarayıcıda açılır — bitince dosyaya dokunup “Güncelle”yi seçin.',
+    updWebOk: 'Güncel.', updWebNew: 'Yeni sürüm bulundu — yenileniyor…', updErr: 'Denetlenemedi — internet bağlantısı yok mu?',
     dataFrom: '{n} GEO yörünge seti, kaynak: {s}, {a} önce indirildi.', srcServer: 'günlük sunucu güncellemesi', srcCt: 'CelesTrak (doğrudan)', checking: 'Denetleniyor…', badFile: 'Dosyada geçerli TLE seti yok.',
     gPointing: 'Yönlendirme', gPath: 'Yol', gPolar: 'Polar montaj / DiSEqC', gSun: 'Güneş', gOrbit: 'Yörünge (TLE)', gElev: 'Elevasyon ve yol', gPol: 'Polarizasyon (sabit anten)',
     trueAz: 'Coğrafi azimut', compAz: 'Pusula azimutu', compGon: 'Pusula (400 gon)', magDecl: 'Manyetik sapma', appEl: 'Görünür elevasyon', geoEl: 'Geometrik elevasyon (WGS84)',
@@ -927,6 +941,43 @@ function applyTheme() {
 function applyLang() {
   T.apply(); $('lngTr').setAttribute('aria-pressed', T.lang === 'tr'); $('lngEn').setAttribute('aria-pressed', T.lang === 'en');
   $('pointTxt').textContent = T(aim.on ? 'pointStop' : 'pointStart');
+  showUpd();
+}
+
+// ----- app updates (manual check) -----
+// Android app: compare the installed versionName with the latest GitHub release and offer the APK (opens in the browser).
+// Web/PWA: ask the service worker to look for a new build and reload when it takes over.
+const REPO = 'kivanckilic/geopeek', APK_URL = `https://github.com/${REPO}/releases/latest/download/GEOpeek.apk`;
+let appVer = null; try { appVer = window.GEOpeekNative && GEOpeekNative.version ? String(GEOpeekNative.version()) : null; } catch (e) { }
+var upd = { k: null, v: {} };
+const verParts = v => ((String(v || '').match(/(\d+)\.(\d+)\.(\d+)/) || []).slice(1)).map(Number);
+const isNewer = (a, b) => { a = verParts(a); b = verParts(b); if (a.length < 3 || b.length < 3) return false; for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i]; return false; };
+function showUpd() {
+  const m = $('updMsg'); if (!m || !upd) return;
+  const base = appVer ? T('verNow', { v: appVer }) : T('verWeb');
+  m.className = 'msg' + (upd.k === 'updErr' ? ' bad' : '');
+  m.textContent = !upd.k ? base : T(upd.k, upd.v) + (upd.k === 'updAvail' ? ' ' + T('updHow') : upd.k === 'updWebOk' ? ' ' + base : '');
+  $('appGet').hidden = upd.k !== 'updAvail';
+}
+async function checkApp() {
+  const b = $('appUpd'); b.disabled = true; upd = { k: 'checking', v: {} }; showUpd();
+  try {
+    if (appVer) {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) throw new Error(r.status);
+      const tag = String((await r.json()).tag_name || '').replace(/^v/, '');
+      upd = isNewer(tag, appVer) ? { k: 'updAvail', v: { v: tag, c: appVer } } : { k: 'updNone', v: { v: appVer } };
+    } else {
+      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+      if (reg) await reg.update();
+      if (reg && (reg.installing || reg.waiting)) {
+        upd = { k: 'updWebNew', v: {} };
+        navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+        setTimeout(() => location.reload(), 5000);
+      } else upd = { k: 'updWebOk', v: {} };
+    }
+  } catch (e) { upd = { k: 'updErr', v: {} }; }
+  showUpd(); b.disabled = false;
 }
 
 // ---------- orbital data ----------
@@ -1249,6 +1300,8 @@ $('list').addEventListener('click', e => { const it = e.target.closest('.item[da
 $('srcTle').addEventListener('click', () => { setSrc('tle'); renderList(); }); $('srcSlot').addEventListener('click', () => setSrc('slot'));
 $('pointBtn').addEventListener('click', togglePoint);
 $('refresh').addEventListener('click', () => { $('dataMsg').textContent = T('checking'); loadData(true); });
+$('appUpd').addEventListener('click', checkApp);
+$('appGet').addEventListener('click', () => { location.href = APK_URL; });   // native shell hands github.com links to the browser
 $('file').addEventListener('change', async e => { const fl = e.target.files[0]; if (!fl) return; if (useText(await fl.text(), { at: Date.now(), src: 'file ' + fl.name })) { dataErr = ''; setSrc('tle'); } else { dataErr = T('badFile'); } renderAll(); });
 $('vGlobe').addEventListener('click', () => setView('globe')); $('vSky').addEventListener('click', () => setView('sky'));
 $('recenter').addEventListener('click', () => globe && globe.recenter());
