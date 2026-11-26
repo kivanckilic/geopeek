@@ -87,7 +87,11 @@ button{font:inherit;color:inherit}
 .seg button{border:0;background:transparent;border-radius:9px;min-height:36px;padding:4px 14px;font-weight:600;font-size:14px;color:var(--mute);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .tabs .sp{flex:1}
-.mini{min-height:36px;padding:4px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:var(--mute)}
+.mini{white-space:nowrap;min-height:38px;min-width:38px;padding:4px 11px;border-radius:11px;border:1px solid var(--line);background:transparent;font-size:13px;font-weight:650;cursor:pointer;color:var(--mute);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.mini.acc{background:var(--accSoft);color:var(--acc);border-color:transparent}
+.zoombtns{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:rgba(8,18,32,.7);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(6px)}
+.zoombtns button{width:40px;height:40px;border:0;background:transparent;color:#e8f2ff;font-size:22px;line-height:1;cursor:pointer}
+.zoombtns button+button{border-top:1px solid rgba(255,255,255,.1)}
 .stage{position:relative;margin:10px;border-radius:18px;overflow:hidden;aspect-ratio:1/1}
 .space{background:radial-gradient(90% 90% at 50% 40%,#0d1e36 0%,#060c18 55%,#03060d 100%)}
 #globe{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
@@ -190,7 +194,27 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
       </div>
     </section>
 
-    <section class="point">
+    <section class="viz">
+      <div class="tabs">
+        <div class="seg" role="group"><button id="vGlobe" aria-pressed="true" data-t="globe">Globe</button><button id="vSky" aria-pressed="false" data-t="sky">Sky</button></div>
+        <span class="sp"></span>
+        <button class="mini acc" id="focusBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M11 8v6M8 11h6"/></svg><span data-t="focus"></span></button>
+        <button class="mini" id="recenter" data-ta="recenter"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12c2.5 2 5.5 3 8.5 3s6-1 8.5-3"/></svg></button>
+      </div>
+      <div class="stage space" id="globeStage">
+        <canvas id="globe" role="img" data-ta="globeAria"></canvas>
+        <div class="zoombtns"><button id="zIn" aria-label="+">+</button><button id="zOut" aria-label="−">−</button></div>
+        <div class="legend"><span><i style="background:#8ff0c0"></i><span data-t="legendVis"></span></span><span><i style="background:rgba(140,160,190,.7)"></i><span data-t="legendHid"></span></span><span><i style="background:#ffcf5a"></i><span data-t="legendYou"></span></span></div>
+      </div>
+      <div class="stage" id="skyStage" hidden><svg id="dial" viewBox="0 0 400 400" role="img" data-ta="skyAria"></svg></div>
+      <div class="cap" id="vizCap" data-t="globeHint"></div>
+    </section>
+  </div>
+
+  <div>
+    <section class="det" id="det"></section>
+    <!-- Pointing aid: disabled for now (sensor heading not reliable enough yet); code kept below. -->
+    <section class="point" hidden>
       <button class="bigbtn" id="pointBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg><span id="pointTxt" data-t="pointStart">Start pointing aid</span></button>
       <div class="guide" id="guide" aria-live="polite">
         <div class="row"><div><div class="k" id="gTurnK" data-t="turn">Turn</div><div class="big num" id="gTurn">—</div></div><div><div class="k" id="gTiltK" data-t="tilt">Tilt</div><div class="big num" id="gTilt">—</div></div></div>
@@ -198,22 +222,6 @@ input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid
       </div>
       <div class="hint" data-t="compassWarn"></div>
     </section>
-  </div>
-
-  <div>
-    <section class="viz">
-      <div class="tabs">
-        <div class="seg" role="group"><button id="vGlobe" aria-pressed="true" data-t="globe">Globe</button><button id="vSky" aria-pressed="false" data-t="sky">Sky</button></div>
-        <span class="sp"></span><button class="mini" id="recenter" data-t="recenter">Recenter</button>
-      </div>
-      <div class="stage space" id="globeStage">
-        <canvas id="globe" role="img" data-ta="globeAria"></canvas>
-        <div class="legend"><span><i style="background:#8ff0c0"></i><span data-t="legendVis"></span></span><span><i style="background:rgba(140,160,190,.7)"></i><span data-t="legendHid"></span></span><span><i style="background:#ffcf5a"></i><span data-t="legendYou"></span></span></div>
-      </div>
-      <div class="stage" id="skyStage" hidden><svg id="dial" viewBox="0 0 400 400" role="img" data-ta="skyAria"></svg></div>
-      <div class="cap" id="vizCap" data-t="globeHint"></div>
-    </section>
-    <section class="det" id="det"></section>
   </div>
 </div></main>
 <div class="foot" data-t="foot"></div>
@@ -468,8 +476,8 @@ const I18N = {
     belowHorizon: 'below horizon', visible: 'visible', selectSat: 'Select satellite', tapToChoose: 'Tap to choose', checkCoords: 'Check the site coordinates in Settings',
     locating: 'Locating…', loadingData: 'Loading data…', noData: 'No orbital data', satsAge: '{n} sats · {a} old',
     myLocAcc: 'My location ±{m} m · {h}', settings: 'Settings', satellite: 'Satellite', done: 'Done',
-    globe: 'Globe', sky: 'Sky', recenter: 'Recenter', legendVis: 'visible from here', legendHid: 'not visible', legendYou: 'you',
-    globeHint: 'Not to scale · drag to rotate · pinch or scroll to zoom · double-tap to recenter · tap a satellite to select it',
+    globe: 'Globe', sky: 'Sky', recenter: 'Overview', focus: 'Focus', legendVis: 'visible from here', legendHid: 'not visible', legendYou: 'you',
+    globeHint: 'Not to scale · pinch, scroll or +/− to zoom up to 60× · zoomed in, drag sideways to travel along the belt · tap a satellite to select it · double-tap for the overview',
     skyAria: 'Sky dial: azimuth around, elevation inward', globeAria: '3D globe with the geostationary belt, satellites and your position',
     pointStart: 'Start pointing aid', pointStop: 'Stop pointing aid', turn: 'Turn', tilt: 'Tilt', turnRight: 'Turn right', turnLeft: 'Turn left', tiltUp: 'Tilt up', tiltDown: 'Tilt down',
     onTarget: 'on target', holdUpright: 'hold upright', aimNote: 'Hold the phone upright and aim the back camera at the sky.',
@@ -525,8 +533,8 @@ const I18N = {
     belowHorizon: 'ufkun altında', visible: 'görünür', selectSat: 'Uydu seçin', tapToChoose: 'Seçmek için dokunun', checkCoords: 'Ayarlar’dan konum koordinatlarını kontrol edin',
     locating: 'Konum alınıyor…', loadingData: 'Veri yükleniyor…', noData: 'Yörünge verisi yok', satsAge: '{n} uydu · {a} önce',
     myLocAcc: 'Konumum ±{m} m · {h}', settings: 'Ayarlar', satellite: 'Uydu', done: 'Tamam',
-    globe: 'Küre', sky: 'Gökyüzü', recenter: 'Ortala', legendVis: 'buradan görünür', legendHid: 'görünmez', legendYou: 'siz',
-    globeHint: 'Ölçeksiz · döndürmek için sürükleyin · yakınlaştırmak için iki parmak veya tekerlek · ortalamak için çift dokunun · seçmek için uyduya dokunun',
+    globe: 'Küre', sky: 'Gökyüzü', recenter: 'Genel görünüm', focus: 'Odaklan', legendVis: 'buradan görünür', legendHid: 'görünmez', legendYou: 'siz',
+    globeHint: 'Ölçeksiz · iki parmak, tekerlek veya +/− ile 60×’e kadar yakınlaşın · yakındayken yana sürükleyerek kuşak boyunca gezinin · seçmek için uyduya dokunun · genel görünüm için çift dokunun',
     skyAria: 'Gökyüzü kadranı: çevrede azimut, içe doğru elevasyon', globeAria: 'Yer sabit kuşak, uydular ve konumunuzla 3B küre',
     pointStart: 'Yönlendirme yardımını başlat', pointStop: 'Yönlendirme yardımını durdur', turn: 'Dön', tilt: 'Eğ', turnRight: 'Sağa dön', turnLeft: 'Sola dön', tiltUp: 'Yukarı kaldır', tiltDown: 'Aşağı indir',
     onTarget: 'hedefte', holdUpright: 'dik tutun', aimNote: 'Telefonu dik tutun ve arka kamerayı gökyüzüne doğrultun.',
@@ -587,15 +595,19 @@ T.apply = root => {
 // Earth as a dotted sphere (Natural Earth 1:110m land mask), day/night from the sun direction,
 // the geostationary belt as a ring (stylised radius, not to scale) with every NORAD GEO object,
 // the observer's position and a sight line to the selected satellite.
+// Camera: orbits the Earth (yaw = camera longitude, pitch = camera latitude), zoom k up to 60x toward the
+// pointer, plus a screen offset (ox, oy) so any part of the belt can be brought to the middle.
+// Zoomed in (k >= 3), a horizontal drag slides along the belt and a vertical drag pans.
 // Coordinates are ECEF unit vectors (x: 0°E, y: 90°E, z: north).
 const Globe = (() => {
-  const D2R = Math.PI / 180, RING = 1.85, CAM = 9;
+  const D2R = Math.PI / 180, RING = 1.85, CAM = 9, KMIN = .6, KMAX = 60, BELT_ZOOM = 3;
   const PAL = {
     glow: 'rgba(80,200,255,', oceanLit: '#12385a', oceanMid: '#0b2440', oceanDark: '#050d1b',
     dayDot: ['#e9fff4', '#b8f5d0', '#7fd8b0', '#4f9c86', '#2f5f66', '#1e3d52'],
     ring: 'rgba(150,190,230,', arc: '#7ee2a8', satVis: '#8ff0c0', satHid: 'rgba(140,160,190,.45)',
     sel: '#ffffff', selGlow: 'rgba(126,226,168,', site: '#ffcf5a', line: 'rgba(255,207,90,'
   };
+  const FONT = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
 
   function decodeLand(txt) {
     return txt.split(';').map(r => { const v = r.split(',').map(Number), pts = [[v[0] / 10, v[1] / 10]]; let x = v[0], y = v[1]; for (let i = 2; i < v.length; i += 2) { x += v[i]; y += v[i + 1]; pts.push([x / 10, y / 10]); } return pts; });
@@ -616,108 +628,148 @@ const Globe = (() => {
     return new Float32Array(out);
   }
   const unitLL = (lat, lon) => { const p = lat * D2R, l = lon * D2R; return [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)]; };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   function create(canvas, opts = {}) {
     const ctx = canvas.getContext('2d');
     const dots = landDots(decodeLand(opts.land || ''), opts.dots || 24000);
-    const st = { yaw: 30 * D2R, pitch: 22 * D2R, k: 1, tYaw: null, tPitch: null, vy: 0, vp: 0 };
-    let data = { site: null, sats: [], selId: null, sun: [1, 0, 0], arc: null, label: '' };
-    let W = 0, H = 0, dpr = 1, F = 1, cx = 0, cy = 0, dirty = true, raf = 0, visible = true, t0 = performance.now(), hits = [];
-    let stars = [];
+    const st = { yaw: 30 * D2R, pitch: 22 * D2R, k: 1, ox: 0, oy: 0, vy: 0, vp: 0, vo: 0, anim: null };
+    let data = { site: null, sats: [], selId: null, selDir: null, sun: [1, 0, 0], arc: null, label: '' };
+    let W = 0, H = 0, dpr = 1, F = 1, cx = 0, cy = 0, X0 = 0, Y0 = 0, raf = 0, visible = true, t0 = performance.now(), hits = [], stars = [];
 
     function resize() {
-      const b = canvas.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+      const b = canvas.getBoundingClientRect(), od = dpr; dpr = Math.min(2, window.devicePixelRatio || 1);
       W = Math.max(1, Math.round(b.width * dpr)); H = Math.max(1, Math.round(b.height * dpr));
       if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+      if (od !== dpr) { st.ox *= dpr / od; st.oy *= dpr / od; }
       cx = W / 2; cy = H / 2;
       let s = 7; stars = []; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < Math.round(W * H / (2600 * dpr * dpr)); i++) stars.push([rnd() * W, rnd() * H, rnd()]);
-      dirty = true; kick();
+      kick();
     }
-    // camera basis from yaw (longitude) / pitch (latitude) of the camera
-    function basis() {
-      const cyw = Math.cos(st.yaw), syw = Math.sin(st.yaw), cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+    const focal = k => Math.min(W, H) * .47 * CAM / RING * k / 1.08;
+    function basisOf(yaw, pitch) {
+      const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
       return { r: [-syw, cyw, 0], u: [-sp * cyw, -sp * syw, cp], n: [cp * cyw, cp * syw, sp] };
     }
+    const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     function proj(B, p) {
-      const x = p[0] * B.r[0] + p[1] * B.r[1] + p[2] * B.r[2], y = p[0] * B.u[0] + p[1] * B.u[1] + p[2] * B.u[2], z = p[0] * B.n[0] + p[1] * B.n[1] + p[2] * B.n[2];
-      const s = F / (CAM - z); return [cx + x * s, cy - y * s, z, x, y];
+      const x = dot3(p, B.r), y = dot3(p, B.u), z = dot3(p, B.n), s = F / (CAM - z);
+      return [X0 + x * s, Y0 - y * s, z, x, y];
     }
     // true when the segment camera -> point passes through the Earth
     function hidden(q) {
       const px = q[3], py = q[4], pz = q[2] - CAM, a = px * px + py * py + pz * pz, b = 2 * CAM * pz, c = CAM * CAM - 1, disc = b * b - 4 * a * c;
       if (disc <= 0) return false; const t = (-b - Math.sqrt(disc)) / (2 * a); return t > 0 && t < 1;
     }
+    // zoom by factor f keeping screen point (mx, my) (device px) fixed
+    function zoomAt(f, mx, my) {
+      const k = clamp(st.k * f, KMIN, KMAX); f = k / st.k; if (f === 1) return;
+      st.ox = (mx - cx) - ((mx - cx) - st.ox) * f; st.oy = (my - cy) - ((my - cy) - st.oy) * f; st.k = k;
+      if (st.k < 1.05) { st.ox *= .85; st.oy *= .85; }   // drift back to the middle when zoomed out
+      st.anim = null; kick();
+    }
+    function onScreen(q, m) { return q[0] > -m && q[0] < W + m && q[1] > -m && q[1] < H + m; }
 
     function draw(now) {
       raf = 0;
-      // easing toward a recenter target + drag inertia
       let moving = false;
-      if (st.tYaw != null) { const dy = Math.atan2(Math.sin(st.tYaw - st.yaw), Math.cos(st.tYaw - st.yaw)), dp = st.tPitch - st.pitch; st.yaw += dy * .14; st.pitch += dp * .14; if (Math.abs(dy) + Math.abs(dp) < 1e-3) st.tYaw = st.tPitch = null; moving = true; }
-      if (!drag && (Math.abs(st.vy) > 1e-4 || Math.abs(st.vp) > 1e-4)) { st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); st.vy *= .93; st.vp *= .93; moving = true; }
-      F = Math.min(W, H) * .47 * CAM / RING * st.k / 1.08;
-      const B = basis(), R = F / Math.sqrt(CAM * CAM - 1), t = (now - t0) / 1000;
+      const a = st.anim;
+      if (a) {   // ease toward a target view (recenter / focus)
+        const e = .16, dy = Math.atan2(Math.sin(a.yaw - st.yaw), Math.cos(a.yaw - st.yaw));
+        st.yaw += dy * e; st.pitch += (a.pitch - st.pitch) * e; st.k *= Math.pow(a.k / st.k, e); st.ox += (a.ox - st.ox) * e; st.oy += (a.oy - st.oy) * e;
+        if (Math.abs(dy) + Math.abs(a.pitch - st.pitch) < 2e-4 && Math.abs(Math.log(a.k / st.k)) < 2e-3 && Math.abs(a.ox - st.ox) + Math.abs(a.oy - st.oy) < .5) Object.assign(st, { yaw: a.yaw, pitch: a.pitch, k: a.k, ox: a.ox, oy: a.oy, anim: null });
+        moving = true;
+      }
+      if (!drag && (Math.abs(st.vy) > 1e-5 || Math.abs(st.vp) > 1e-5 || Math.abs(st.vo) > .05)) { st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); st.oy += st.vo; st.vy *= .92; st.vp *= .92; st.vo *= .9; moving = true; }
+      F = focal(st.k); X0 = cx + st.ox; Y0 = cy + st.oy;
+      const B = basisOf(st.yaw, st.pitch), R = F / Math.sqrt(CAM * CAM - 1), t = (now - t0) / 1000, zoomed = st.k >= BELT_ZOOM;
       ctx.clearRect(0, 0, W, H);
-      // stars
-      for (const [x, y, a] of stars) { ctx.fillStyle = `rgba(220,235,255,${.15 + a * .45})`; ctx.fillRect(x, y, a > .85 ? 1.6 * dpr : dpr, a > .85 ? 1.6 * dpr : dpr); }
-      const ringPts = [], RS = 180;
+      for (const [x, y, al] of stars) { ctx.fillStyle = `rgba(220,235,255,${.15 + al * .45})`; ctx.fillRect(x, y, al > .85 ? 1.6 * dpr : dpr, al > .85 ? 1.6 * dpr : dpr); }
+      const ringPts = [], RS = zoomed ? 1440 : 360;
       for (let i = 0; i <= RS; i++) { const l = i / RS * 360 - 180; const q = proj(B, [RING * Math.cos(l * D2R), RING * Math.sin(l * D2R), 0]); q.lon = l; q.hid = hidden(q); ringPts.push(q); }
       const sats = data.sats.map(s => { const q = proj(B, [s.d[0] * RING, s.d[1] * RING, s.d[2] * RING]); q.hid = hidden(q); q.s = s; return q; });
-      const inArc = l => { const a = data.arc; if (!a) return false; const w = a.west, e = a.east; return w <= e ? l >= w && l <= e : l >= w || l <= e; };
+      const inArc = l => { const ar = data.arc; if (!ar) return false; const w = ar.west, e = ar.east; return w <= e ? l >= w && l <= e : l >= w || l <= e; };
       // pass 1: far side of the ring (the opaque Earth covers what it should)
       ctx.lineWidth = 1.2 * dpr; ctx.strokeStyle = PAL.ring + '.18)'; ctx.beginPath(); ringPts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
-      for (const q of sats) if (q.hid) { ctx.fillStyle = 'rgba(140,160,190,.18)'; ctx.fillRect(q[0] - dpr, q[1] - dpr, 2 * dpr, 2 * dpr); }
-      // atmosphere glow
-      const gl = ctx.createRadialGradient(cx, cy, R * .92, cx, cy, R * 1.28);
+      for (const q of sats) if (q.hid && onScreen(q, 4)) { ctx.fillStyle = 'rgba(140,160,190,.18)'; ctx.fillRect(q[0] - dpr, q[1] - dpr, 2 * dpr, 2 * dpr); }
+      // Earth: atmosphere glow, ocean lit toward the sun, land dots
+      const gl = ctx.createRadialGradient(X0, Y0, R * .92, X0, Y0, R * 1.28);
       gl.addColorStop(0, PAL.glow + '.35)'); gl.addColorStop(.35, PAL.glow + '.12)'); gl.addColorStop(1, PAL.glow + '0)');
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, R * 1.28, 0, 7); ctx.fill();
-      // ocean, lit toward the sun
-      const sc = [data.sun[0] * B.r[0] + data.sun[1] * B.r[1] + data.sun[2] * B.r[2], data.sun[0] * B.u[0] + data.sun[1] * B.u[1] + data.sun[2] * B.u[2], data.sun[0] * B.n[0] + data.sun[1] * B.n[1] + data.sun[2] * B.n[2]];
-      const lx = cx + sc[0] * R * .62, ly = cy - sc[1] * R * .62, oc = ctx.createRadialGradient(lx, ly, R * .05, cx - sc[0] * R * .2, cy + sc[1] * R * .2, R * 1.45);
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(X0, Y0, R * 1.28, 0, 7); ctx.fill();
+      const sc = [dot3(data.sun, B.r), dot3(data.sun, B.u), dot3(data.sun, B.n)];
+      const lx = X0 + sc[0] * R * .62, ly = Y0 - sc[1] * R * .62, oc = ctx.createRadialGradient(lx, ly, R * .05, X0 - sc[0] * R * .2, Y0 + sc[1] * R * .2, R * 1.45);
       const lit = Math.max(0, sc[2]) * .6 + .4;
       oc.addColorStop(0, sc[2] > -0.6 ? PAL.oceanLit : PAL.oceanMid); oc.addColorStop(.45 * lit + .1, PAL.oceanMid); oc.addColorStop(1, PAL.oceanDark);
-      ctx.fillStyle = oc; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
-      // land dots, bucketed by sun illumination
-      const buckets = PAL.dayDot.map(() => []), lim = 1 / CAM, sz = Math.max(1.1 * dpr, R / 135);
+      ctx.fillStyle = oc; ctx.beginPath(); ctx.arc(X0, Y0, R, 0, 7); ctx.fill();
+      const buckets = PAL.dayDot.map(() => []), lim = 1 / CAM, sz = clamp(R / 135, 1.1 * dpr, 3.2 * dpr);
       for (let i = 0; i < dots.length; i += 3) {
         const x = dots[i], y = dots[i + 1], z = dots[i + 2], zz = x * B.n[0] + y * B.n[1] + z * B.n[2];
         if (zz <= lim) continue;
-        const xx = x * B.r[0] + y * B.r[1], yy = x * B.u[0] + y * B.u[1] + z * B.u[2], s = F / (CAM - zz);
-        const sun = x * data.sun[0] + y * data.sun[1] + z * data.sun[2], lim2 = zz;   // limb darkening via zz
-        let b = sun > .35 ? 0 : sun > .12 ? 1 : sun > -.05 ? 2 : sun > -.2 ? 3 : 4; if (lim2 < .25) b = Math.min(5, b + 1);
-        buckets[b].push(cx + xx * s, cy - yy * s);
+        const s = F / (CAM - zz), px = X0 + (x * B.r[0] + y * B.r[1]) * s, py = Y0 - (x * B.u[0] + y * B.u[1] + z * B.u[2]) * s;
+        if (px < -4 || px > W + 4 || py < -4 || py > H + 4) continue;
+        const sun = x * data.sun[0] + y * data.sun[1] + z * data.sun[2];
+        let b = sun > .35 ? 0 : sun > .12 ? 1 : sun > -.05 ? 2 : sun > -.2 ? 3 : 4; if (zz < .25) b = Math.min(5, b + 1);
+        buckets[b].push(px, py);
       }
+      ctx.globalAlpha = clamp(1.25 - st.k * .12, .12, 1);   // land fades into the background when zoomed on the belt
       buckets.forEach((arr, b) => { if (!arr.length) return; ctx.fillStyle = PAL.dayDot[b]; ctx.beginPath(); for (let i = 0; i < arr.length; i += 2) ctx.rect(arr[i] - sz / 2, arr[i + 1] - sz / 2, sz, sz); ctx.fill(); });
+      ctx.globalAlpha = 1;
       // pass 3: near side of the ring, visible arc highlighted
       ctx.lineCap = 'round';
       for (let i = 1; i < ringPts.length; i++) {
-        const a = ringPts[i - 1], b = ringPts[i]; if (a.hid || b.hid) continue;
-        const on = inArc((a.lon + b.lon) / 2); ctx.strokeStyle = on ? PAL.arc : PAL.ring + (a[2] > 0 ? '.55)' : '.3)'); ctx.lineWidth = (on ? 2.4 : 1.2) * dpr;
-        ctx.globalAlpha = on ? .85 : 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.globalAlpha = 1;
+        const p = ringPts[i - 1], q = ringPts[i]; if (p.hid || q.hid || (!onScreen(p, 50) && !onScreen(q, 50))) continue;
+        const on = inArc((p.lon + q.lon) / 2); ctx.strokeStyle = on ? PAL.arc : PAL.ring + (p[2] > 0 ? '.55)' : '.3)'); ctx.lineWidth = (on ? 2.4 : 1.2) * dpr;
+        ctx.globalAlpha = on ? (zoomed ? .45 : .85) : 1; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.globalAlpha = 1;
       }
       hits = [];
-      let selQ = null;
+      let selQ = null; const labels = [];
+      const rDot = (zoomed ? 2.8 : 1.9) * dpr;
       for (const q of sats) {
-        if (q.hid) continue; hits.push(q);
+        if (q.hid || !onScreen(q, 20)) continue; hits.push(q);
         if (q.s.id === data.selId) { selQ = q; continue; }
-        const r = (q.s.vis ? 1.9 : 1.4) * dpr * (q[2] > 0 ? 1.1 : .9);
-        ctx.fillStyle = q.s.vis ? PAL.satVis : PAL.satHid; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fill();
+        ctx.fillStyle = q.s.vis ? PAL.satVis : PAL.satHid; ctx.beginPath(); ctx.arc(q[0], q[1], q.s.vis ? rDot : rDot * .75, 0, 7); ctx.fill();
+        if (zoomed && q.s.name) labels.push(q);
+      }
+      // where the selected satellite's label pill goes (reserved before the other names are placed)
+      let pill = null;
+      if (selQ && data.label) {
+        ctx.font = `600 ${12 * dpr}px ${FONT}`;
+        const pw = ctx.measureText(data.label).width + 16 * dpr, ph = 22 * dpr;
+        let x = selQ[0] + 12 * dpr, y = selQ[1] - 30 * dpr; if (x + pw > W - 6 * dpr) x = selQ[0] - 12 * dpr - pw; if (y < 6 * dpr) y = selQ[1] + 10 * dpr;
+        pill = [x, y, pw, ph];
+      }
+      // names of nearby satellites when zoomed in (skip ones that would overlap)
+      if (labels.length) {
+        ctx.font = `500 ${11 * dpr}px ${FONT}`; ctx.textBaseline = 'middle';
+        const taken = [], free = (x, y, w, h) => !taken.some(r => x < r[0] + r[2] && x + w > r[0] && y < r[1] + r[3] && y + h > r[1]);
+        if (pill) taken.push([pill[0] - 4 * dpr, pill[1] - 4 * dpr, pill[2] + 8 * dpr, pill[3] + 8 * dpr]);
+        if (selQ) taken.push([selQ[0] - 10 * dpr, selQ[1] - 10 * dpr, 20 * dpr, 20 * dpr]);
+        labels.sort((p, q) => (p[0] - cx) ** 2 + (p[1] - cy) ** 2 - ((q[0] - cx) ** 2 + (q[1] - cy) ** 2));
+        let n = 0;
+        for (const q of labels) {
+          if (n >= 40) break;
+          const txt = q.s.name, w = ctx.measureText(txt).width + 4 * dpr, h = 14 * dpr;
+          for (const [dx, dy] of [[7, -12], [7, 12], [-7 - w / dpr, -12], [-7 - w / dpr, 12]]) {
+            const x = q[0] + dx * dpr, y = q[1] + dy * dpr - h / 2;
+            if (free(x, y, w, h)) { taken.push([x, y, w, h]); ctx.fillStyle = q.s.vis ? 'rgba(200,255,225,.9)' : 'rgba(170,185,210,.7)'; ctx.fillText(txt, x + 2 * dpr, y + h / 2); n++; break; }
+          }
+        }
       }
       // observer + sight line
-      let siteQ = null;
       if (data.site) {
-        const u = unitLL(data.site.lat, data.site.lon); siteQ = proj(B, u); siteQ.front = siteQ[2] > lim;
-        if (selQ && !selQ.hid) {
-          const target = data.selDir || [selQ.s.d[0], selQ.s.d[1], selQ.s.d[2]], N = 40; let prev = null;
+        const u = unitLL(data.site.lat, data.site.lon), siteQ = proj(B, u), front = siteQ[2] > lim;
+        if (selQ) {
+          const target = data.selDir || selQ.s.d, N = 60; let prev = null;
           ctx.lineWidth = 2 * dpr;
           for (let i = 0; i <= N; i++) {
             const f = i / N, p = [u[0] + (target[0] * RING - u[0]) * f, u[1] + (target[1] * RING - u[1]) * f, u[2] + (target[2] * RING - u[2]) * f];
-            const q = proj(B, p), hid = i > 0 && hidden(q) && !(i === 0);
-            if (prev && !hid && !prev.hid) { ctx.strokeStyle = PAL.line + (.35 + .55 * f) + ')'; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
-            q.hid = hid || (i === 0 && !siteQ.front); prev = q;
+            const q = proj(B, p); q.hid = i === 0 ? !front : hidden(q);
+            if (prev && !q.hid && !prev.hid) { ctx.strokeStyle = PAL.line + (.35 + .55 * f) + ')'; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+            prev = q;
           }
         }
-        if (siteQ.front) {
+        if (front && onScreen(siteQ, 30)) {
           const pulse = (t % 2) / 2;
           ctx.strokeStyle = PAL.line + (0.7 * (1 - pulse)) + ')'; ctx.lineWidth = 1.5 * dpr; ctx.beginPath(); ctx.arc(siteQ[0], siteQ[1], (4 + 14 * pulse) * dpr, 0, 7); ctx.stroke();
           ctx.fillStyle = PAL.site; ctx.beginPath(); ctx.arc(siteQ[0], siteQ[1], 4 * dpr, 0, 7); ctx.fill();
@@ -729,11 +781,10 @@ const Globe = (() => {
         g2.addColorStop(0, PAL.selGlow + '.9)'); g2.addColorStop(1, PAL.selGlow + '0)');
         ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(selQ[0], selQ[1], 16 * dpr, 0, 7); ctx.fill();
         ctx.fillStyle = PAL.sel; ctx.beginPath(); ctx.arc(selQ[0], selQ[1], 4.2 * dpr, 0, 7); ctx.fill();
-        if (data.label) {
-          ctx.font = `600 ${12 * dpr}px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`;
-          const tw = ctx.measureText(data.label).width, pw = tw + 16 * dpr, ph = 22 * dpr;
-          let x = selQ[0] + 12 * dpr, y = selQ[1] - 30 * dpr; if (x + pw > W - 6 * dpr) x = selQ[0] - 12 * dpr - pw; if (y < 6 * dpr) y = selQ[1] + 10 * dpr;
-          ctx.fillStyle = 'rgba(8,18,32,.82)'; ctx.strokeStyle = 'rgba(126,226,168,.6)'; ctx.lineWidth = dpr;
+        if (pill) {
+          const [x, y, pw, ph] = pill;
+          ctx.font = `600 ${12 * dpr}px ${FONT}`;
+          ctx.fillStyle = 'rgba(8,18,32,.85)'; ctx.strokeStyle = 'rgba(126,226,168,.6)'; ctx.lineWidth = dpr;
           rr(x, y, pw, ph, 11 * dpr); ctx.fill(); ctx.stroke();
           ctx.fillStyle = '#e9fff4'; ctx.textBaseline = 'middle'; ctx.fillText(data.label, x + 8 * dpr, y + ph / 2 + .5);
         }
@@ -741,35 +792,51 @@ const Globe = (() => {
         const q = proj(B, [data.selDir[0] * RING, data.selDir[1] * RING, data.selDir[2] * RING]);
         if (!hidden(q)) { ctx.fillStyle = PAL.sel; ctx.beginPath(); ctx.arc(q[0], q[1], 4.2 * dpr, 0, 7); ctx.fill(); }
       }
-      if (moving || dirty) dirty = false;
-      if (visible && (moving || data.site)) kick();   // keep animating the site pulse while on screen
+      // zoom badge
+      if (st.k > 1.2) { ctx.font = `600 ${11 * dpr}px ${FONT}`; ctx.fillStyle = 'rgba(220,235,255,.55)'; ctx.textBaseline = 'top'; ctx.fillText(`${st.k < 10 ? st.k.toFixed(1) : Math.round(st.k)}×`, 10 * dpr, 10 * dpr); }
+      if (opts.onView) opts.onView(st.k);
+      if (visible && (moving || data.site)) kick(moving ? 0 : 50);
     }
     function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
-    let lastFrame = 0;
-    function kick() { if (!raf) raf = requestAnimationFrame(now => { if (now - lastFrame < 50 && !drag && st.tYaw == null && Math.abs(st.vy) < 1e-4) { raf = 0; setTimeout(kick, 50 - (now - lastFrame)); return; } lastFrame = now; draw(now); }); }
-    const clampP = p => Math.max(-80 * D2R, Math.min(80 * D2R, p));
+    let timer = 0;
+    function kick(delay = 0) {   // idle frames (site pulse) at ~20 fps, interaction at display rate
+      if (raf) return;
+      if (delay && !drag) { if (!timer) timer = setTimeout(() => { timer = 0; kick(); }, delay); return; }
+      if (timer) { clearTimeout(timer); timer = 0; }
+      raf = requestAnimationFrame(draw);
+    }
+    const clampP = p => clamp(p, -80 * D2R, 80 * D2R);
 
     // ----- interaction -----
-    const ptrs = new Map(); let drag = false, down = null, pinch0 = null, lastTap = 0;
+    const ptrs = new Map(); let drag = false, down = null, lastTap = 0, pinch = null;
     canvas.style.touchAction = 'none';
+    const local = e => { const b = canvas.getBoundingClientRect(); return [(e.clientX - b.left) * dpr, (e.clientY - b.top) * dpr]; };
+    const pinchState = () => { const [a, b] = [...ptrs.values()]; return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 }; };
     canvas.addEventListener('pointerdown', e => {
-      canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-      if (ptrs.size === 1) { drag = true; down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false }; st.vy = st.vp = 0; st.tYaw = st.tPitch = null; }
-      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: st.k }; }
+      canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, local(e));
+      if (ptrs.size === 1) { drag = true; down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false }; st.vy = st.vp = st.vo = 0; st.anim = null; }
+      if (ptrs.size === 2) { pinch = pinchState(); if (down) down.moved = true; }
     });
     canvas.addEventListener('pointermove', e => {
-      if (!ptrs.has(e.pointerId)) return; const p = ptrs.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1];
-      ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-      if (ptrs.size === 2 && pinch0) { const [a, b] = [...ptrs.values()]; st.k = Math.max(.6, Math.min(2.6, pinch0.k * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch0.d)); down && (down.moved = true); kick(); return; }
-      if (!drag) return; if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) down.moved = true;
-      const sp = .0065 / st.k; st.vy = -dx * sp; st.vp = dy * sp; st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); kick();
+      if (!ptrs.has(e.pointerId)) return; const p = ptrs.get(e.pointerId), q = local(e), dx = q[0] - p[0], dy = q[1] - p[1];
+      ptrs.set(e.pointerId, q);
+      if (ptrs.size === 2 && pinch) {   // pinch: zoom about the fingers' midpoint and pan with it
+        const n = pinchState(); if (pinch.d > 0) zoomAt(n.d / pinch.d, n.x, n.y);
+        st.ox += n.x - pinch.x; st.oy += n.y - pinch.y; pinch = n; kick(); return;
+      }
+      if (!drag || ptrs.size > 1) return; if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) down.moved = true;
+      const grab = (CAM - RING) / (RING * F);   // radians per device pixel so the belt follows the finger
+      if (st.k >= BELT_ZOOM) { st.vy = -dx * grab; st.vp = 0; st.vo = dy; st.yaw += st.vy; st.oy += dy; }
+      else { st.vy = -dx * grab; st.vp = dy * grab; st.vo = 0; st.yaw += st.vy; st.pitch = clampP(st.pitch + st.vp); }
+      kick();
     });
     const up = e => {
-      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null;
+      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null;
+      if (ptrs.size === 1) { const [only] = ptrs.values(); down = null; drag = true; void only; }
       if (ptrs.size === 0) {
         drag = false;
         if (down && !down.moved && performance.now() - down.t < 350) {
-          const b = canvas.getBoundingClientRect(), x = (e.clientX - b.left) * dpr, y = (e.clientY - b.top) * dpr, nowT = performance.now();
+          const [x, y] = local(e), nowT = performance.now();
           if (nowT - lastTap < 320) { recenter(); lastTap = 0; } else {
             lastTap = nowT; let best = null, bd = (22 * dpr) ** 2;
             for (const q of hits) { const d = (q[0] - x) ** 2 + (q[1] - y) ** 2; if (d < bd) { bd = d; best = q; } }
@@ -780,23 +847,32 @@ const Globe = (() => {
       }
     };
     canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-    canvas.addEventListener('wheel', e => { e.preventDefault(); st.k = Math.max(.6, Math.min(2.6, st.k * Math.exp(-e.deltaY * .0012))); kick(); }, { passive: false });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); const [x, y] = local(e); zoomAt(Math.exp(-e.deltaY * .0015), x, y); }, { passive: false });
 
-    function recenter() {
-      if (!data.site) return;
-      st.tYaw = data.site.lon * D2R; st.tPitch = clampP((data.site.lat * .5 + (data.site.lat >= 0 ? 10 : -10)) * D2R); st.vy = st.vp = 0; kick();
+    function overview() {
+      const s = data.site || { lat: 30, lon: 30 };
+      return { yaw: s.lon * D2R, pitch: clampP((s.lat * .5 + (s.lat >= 0 ? 10 : -10)) * D2R), k: 1, ox: 0, oy: 0 };
+    }
+    function recenter() { st.vy = st.vp = st.vo = 0; st.anim = overview(); kick(); }
+    // fly to a point of the belt (default: the selected satellite) and zoom in on it
+    function focus(dir, k) {
+      dir = dir || data.selDir; if (!dir) return;
+      const yaw = Math.atan2(dir[1], dir[0]), lat = data.site ? data.site.lat : 30, pitch = (lat >= 0 ? 7 : -7) * D2R, kk = clamp(k || Math.max(st.k, 14), BELT_ZOOM, KMAX);
+      const B = basisOf(yaw, pitch), p = [dir[0] * RING, dir[1] * RING, dir[2] * RING], x = dot3(p, B.r), y = dot3(p, B.u), z = dot3(p, B.n);
+      const s = focal(kk) / (CAM - z);
+      st.vy = st.vp = st.vo = 0; st.anim = { yaw, pitch, k: kk, ox: -x * s, oy: y * s }; kick();
     }
     function set(d) {
       const first = !data.site && d.site;
       data = Object.assign(data, d);
-      if (first) { st.yaw = d.site.lon * D2R; st.pitch = clampP((d.site.lat * .5 + (d.site.lat >= 0 ? 10 : -10)) * D2R); }
-      dirty = true; kick();
+      if (first) Object.assign(st, overview());
+      kick();
     }
     new ResizeObserver(resize).observe(canvas);
     if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting && !document.hidden; if (visible) kick(); }).observe(canvas);
     document.addEventListener('visibilitychange', () => { visible = !document.hidden; if (visible) kick(); });
     resize();
-    return { set, recenter, resize, zoom: f => { st.k = Math.max(.6, Math.min(2.6, st.k * f)); kick(); } };
+    return { set, recenter, focus, resize, zoom: f => zoomAt(f, cx, cy), get zoomed() { return st.k >= BELT_ZOOM; } };
   }
   return { create, unitLL };
 })();
@@ -1005,13 +1081,14 @@ let globe = null;
 function updGlobe(s, c, d) {
   if (!globe || st.view !== 'globe') return;
   const sn = LA.sunEcef(d), sr = Math.hypot(...sn), sel = c ? Math.hypot(...c.ecef) : 1;
-  const list = st.src === 'tle' ? [...pos].map(([id, p]) => ({ id, d: p.d, vis: p.el > 0 })) : [];
+  const names = new Map(sats.map(x => [x.id, x.name]));
+  const list = st.src === 'tle' ? [...pos].map(([id, p]) => ({ id, d: p.d, vis: p.el > 0, name: names.get(id) })) : [];
   globe.set({ site: { lat: s.lat, lon: s.lon }, sats: list, selId: c && c.sat ? c.sat.id : null, selDir: c ? c.ecef.map(v => v / sel) : null,
     sun: sn.map(v => v / sr), arc: LA.arcLimits(s), label: c ? (c.sat ? `${c.name} · ${ew(c.lonNominal)}` : `${c.name} · ${ew(c.lonNominal)}`) : '' });
 }
 function setView(v) {
   st.view = v; save(); $('vGlobe').setAttribute('aria-pressed', v === 'globe'); $('vSky').setAttribute('aria-pressed', v === 'sky');
-  $('globeStage').hidden = v !== 'globe'; $('skyStage').hidden = v !== 'sky'; $('recenter').hidden = v !== 'globe'; $('vizCap').hidden = v !== 'globe';
+  $('globeStage').hidden = v !== 'globe'; $('skyStage').hidden = v !== 'sky'; $('recenter').hidden = $('focusBtn').hidden = v !== 'globe'; $('vizCap').hidden = v !== 'globe';
   if (v === 'globe' && !globe) globe = Globe.create($('globe'), { land: '-596,-800,-3,-5,-3,-5,-21,1,-22,0,-12,3,0,1,-6,2,23,0,21,-1,8,4,5,4,10,-4;-1592,-795,-19,-1,-13,3,-6,4,-1,0,-6,3,6,4,19,-2,10,-3,7,-3,3,-5;-452,-780,13,-5,4,-6,1,-4,1,-5,-16,-3,-16,-3,-19,-2,-21,-2,-24,0,-13,4,2,4,21,3,9,3,6,4,5,4,6,3,6,5,5,0,15,2,15,-2;-1212,-735,13,-2,12,2,-6,-3,-9,-3,-14,1,-10,3,2,4,12,-2;-1256,-735,16,-4,-6,1,-13,1,-14,2,7,3,10,-3;-990,-719,11,-2,11,1,6,-5,-8,1,-12,-1,-12,1,-14,-1,-10,2,-5,4,6,2,13,-2,14,0;-685,-710,2,-4,-2,-4,-3,-4,-12,-1,-11,-2,-13,0,5,4,-12,-1,-11,-2,-8,3,0,4,11,4,7,1,11,0,3,5,1,4,0,8,5,5,9,1,6,-4,2,-3,4,-5,4,-4,2,-5;-1800,-847,1,0,8,6,18,-4,2,1,2,1,4,1,3,1,1,0,2,0,1,0,14,-4,13,4,2,0,29,2,10,-2,5,-1,15,-4,28,-2,23,-3,38,-3,29,3,43,-2,24,-3,26,3,28,3,2,4,-39,1,-33,2,-8,4,-27,2,2,5,4,4,3,3,-2,5,-16,2,-8,4,-15,3,24,-1,23,2,15,-3,17,3,17,3,8,4,-4,4,-13,2,-14,3,-21,1,-18,1,-19,1,-7,4,-13,3,-8,4,-3,11,5,-1,9,-3,17,1,16,1,8,-4,16,1,13,2,13,3,11,3,15,1,0,4,-4,4,3,3,13,2,6,-3,15,2,12,2,14,0,13,1,14,3,11,2,12,2,8,-1,7,0,14,1,14,-2,13,0,14,2,13,-1,15,-1,14,0,14,0,15,0,14,0,10,3,12,2,13,-2,12,1,11,4,6,-3,4,-4,6,-3,10,3,12,-4,14,-1,11,-3,15,1,12,2,15,-1,14,-1,14,-2,5,4,-7,4,-5,3,-12,1,-6,4,-2,3,-4,8,8,-2,13,0,13,0,12,-1,10,-3,4,-4,14,0,13,1,13,2,13,1,10,-2,13,1,9,7,8,-4,11,-2,13,1,8,-4,13,0,12,-1,12,-3,8,4,4,4,10,-4,14,1,10,-2,7,-4,13,1,10,2,11,3,12,1,14,2,13,1,9,2,6,3,3,5,-2,4,-3,4,-3,3,-3,4,-3,4,0,4,1,4,4,3,4,5,2,3,-2,5,-1,4,4,4,6,3,6,4,7,3,8,3,4,4,6,3,6,3,10,0,6,3,7,2,8,1,7,3,6,3,8,1,6,-2,-4,-4,-10,-3,-4,-2,-8,2,-8,-1,-7,-2,-7,-3,-5,-3,-1,-4,0,-4,5,-3,-7,-2,-9,-1,-6,-3,-6,-3,-6,-5,-2,-4,4,-4,5,-3,8,-2,8,-3,4,-4,2,-4,3,-4,5,-3,3,-4,1,-9,3,-4,1,-4,3,-4,-1,-5,-6,-4,-6,-3,-13,-2,-4,-3,-7,-4,-15,-3,-13,-2,-12,-2,-14,-2,-8,-4,-16,-1,-18,1,-16,-1,-16,0,3,-4,15,-2,11,-3,6,-3,-11,-3,-17,1,-14,-3,-1,-4,0,-4,12,-3,2,-4,12,-4,22,-1,18,-3,14,-3,18,-3,25,-2,24,-2,17,-3,19,-4,10,-4,5,-4,12,3,16,3,18,3,21,3,17,3,25,0,25,-1,20,-3,6,4,14,3,26,1,19,2,19,2,21,1,22,2,15,3,-7,3,-4,4,0,3,-19,0,-21,-2,-19,0,-3,4,1,8,5,2,14,2,17,2,12,3,12,3,9,4,14,2,13,1,7,1,16,1,14,1,13,2,12,2,11,3,14,3,9,3,9,3,3,4,-11,2,4,4,7,4,10,1,11,3,10,3,8,4,5,5,7,2,12,0,5,-4,12,0,0,4,5,4,11,-1,3,-4,12,-1,13,2,12,1,11,0,5,-4,11,3,10,2,11,1,11,1,11,3,11,1,8,3,6,3,8,-2,10,1,8,-5,5,-3,12,2,4,4,10,2,13,0,4,-4,8,4,11,1,12,0,11,0,11,-1,11,-1,4,-3,7,-3,11,2,11,0,12,0,11,0,10,2,11,1,8,3,10,1,10,1,8,3,5,6,6,3,10,-2,4,-3,9,-2,10,0,7,-3,7,-3,11,3,3,4,9,2,11,3,9,1,12,2,8,2,8,3,8,2,9,-1,9,3,7,3,9,0,9,2,1,4,9,3,8,1,10,2,9,1,9,-1,10,-1,8,-2,1,-5,8,-3,6,-3,12,-1,7,-3,8,-3,10,0,8,2,9,4,9,-2,10,-1,9,-2,10,0,10,0,8,-11,0,-2,-1,-5,-10,-2,-8,-4,1,-4,12,0,-2,-4,-5,-3,-5,-5,8,-3,12,-1,11,2,6,4,3,4,6,3,6,3,2,3,6,5,6,1,11,1,10,1,10,1,5,4,3,4,7,4,10,2,8,2,6,4,6,1,7,2,10,-1,9,1,10,1,11,0,7,2,5,7,4,-3,4,-5,9,-1,9,-1,10,1,10,-1,9,0,7,1,8,-1,8,-2,9,2,11,0,9,1,10,-1,7,3,5,3,7,3,12,7,7,-1,7,-3,7,-3,13,-6,10,-1,9,0,11,2,10,1,9,3,6,3,12,0,7,2,8,-2,5,-3,7,-3,11,0,7,-2,12,-3,12,-1,11,1,8,3,6,3,9,1,9,-1,11,-1,9,1,9,0,9,-1,9,-1,9,2,11,2,10,0,11,0,10,1,9,1,2,5,1,4,6,-3,2,-4,3,-4,4,-4,9,-2,11,1,13,0,9,1,13,0,10,0,13,0,11,-1,7,-3,-2,-4,6,-3,11,-2,11,-3,13,-2,14,-1,10,-2,11,0,7,3,9,-2,7,-3,9,-3,12,-1,12,-1,5,-4,11,-2,8,-4,11,-1,11,0,11,-1,12,0,12,0,11,-2,11,-2,10,-2,7,-3,-1,-4,-5,-3,-5,-5,-3,-3,-5,-5,-13,-1,-6,-4,-13,-2,-5,-4,-6,-3,-8,-4,-4,-4,-2,-3,-1,-5,0,-4,6,-4,2,-3,4,-4,19,-1,4,-5,-18,-1,-15,-2,-19,-1,-9,-5,-2,-5,-4,-4,-5,-3,13,-4,5,-4,9,-4,12,-3,14,-3,15,-3,23,-3,5,-5,29,-2,2,-1,7,-3,28,2,23,-3,-3583,-2;-678,-538,13,-7,14,-2,-4,-5,-10,0,-5,3,-3,-4,-8,-3,-11,1,-8,3,-10,1,-13,6,-10,5,-14,12,9,-2,14,-7,13,-4,5,5,3,7,10,4,7,-1,3,-5,5,-7;-585,-511,8,-4,-3,-4,-14,-3,-4,4,-9,-5,-5,5,12,5,8,-2,7,4;703,-497,-16,-1,0,6,2,4,0,2,7,-3,9,-2,1,-2,-3,-4;1454,-408,10,-3,5,1,8,2,6,-1,1,-12,-4,-3,-1,-8,-3,3,-7,-7,-2,0,-7,1,-6,8,-1,7,-6,8,0,5,7,-1;1730,-409,2,-4,8,4,2,-4,0,-5,-3,-4,-7,-8,-5,-4,4,-5,-8,0,-8,-3,-3,-7,-6,-10,-8,-5,-5,-2,-9,0,-6,3,-11,1,-2,3,5,8,13,10,6,2,8,3,8,6,6,5,5,7,4,3,1,5,7,5,2,-4;1746,-362,7,-10,1,7,4,-3,2,-8,8,-3,6,-1,6,4,5,-1,-2,-9,-3,-6,-8,1,-3,-3,1,-5,-1,-2,-4,-5,-5,-7,-8,-4,-1,3,-4,1,5,8,-3,6,-11,4,1,4,7,3,1,8,0,6,-4,7,0,2,-5,4,-7,9,-5,7,4,0,6,-5,7,-3,3,-9;1671,-222,-4,-2,-5,3,-7,4,-7,6,-6,7,-2,3,5,0,5,-4,5,-3,3,-3,8,-6,5,-5;1784,-173,3,-3,-1,-6,-7,-1,-5,1,-1,5,4,3,4,-1,3,2;-1800,-166,3594,-2,-7,-2,-1,4,5,2,3,0,-3594,3,2,1,-1,-5,-1,-1;1678,-165,-3,-1,-3,4,0,3,6,-6;1671,-149,2,-8,-3,1,-2,-1,-1,3,-1,8,5,-3;501,-136,1,-12,3,-4,-1,-5,-2,-3,-3,6,-2,-3,2,-8,-1,-4,-3,-2,-1,-9,-4,-11,-5,-14,-6,-19,-4,-14,-4,-11,-8,-3,-9,-4,-6,3,-8,3,-2,5,-1,9,-4,8,0,7,1,8,5,1,0,4,5,7,1,7,-3,4,-2,7,0,9,3,5,1,7,5,0,6,2,4,2,4,0,6,6,8,6,3,5,-1,4,4,-1,5,7,1,6,3,5,3,-5,3,-4,3,-7;1436,-138,3,-7,7,3,3,-4,5,-4,-1,-4,2,-9,1,-5,3,-1,3,-9,-1,-5,3,-7,11,-5,7,-5,6,-4,-1,-2,6,-7,4,-10,4,2,4,-5,2,2,2,-11,7,-6,5,-4,8,-8,2,-8,1,-5,-1,-7,5,-8,-1,-9,-2,-5,-2,-9,0,-5,-2,-7,-5,-10,-7,-4,-4,-8,-3,-5,-3,-9,-4,-5,-2,-7,-2,-7,1,-3,-6,-4,-11,0,-9,-4,-5,-4,-6,-4,-8,4,-6,2,1,5,-5,-2,-9,-7,-9,3,-5,1,-6,1,-10,3,-6,6,-2,8,-2,5,-5,4,-10,1,3,5,-2,7,-5,-7,-9,-2,6,6,1,6,4,5,-1,7,-8,-9,-6,-3,-4,-8,-8,4,0,6,-6,7,-5,4,2,2,-13,6,-7,0,-10,5,-18,-1,-13,-3,-11,-4,-10,1,-10,-5,-9,-3,-2,-5,-3,-4,-9,0,-6,-1,-9,2,-7,-1,-7,-1,-6,-5,-3,0,-5,-2,-5,-4,-7,1,-7,0,-10,6,-6,2,0,6,5,1,2,2,0,4,1,7,-1,6,-5,10,-2,6,0,5,-4,7,0,3,-4,4,-2,8,-5,8,-2,4,5,-4,-4,9,5,-3,3,-4,0,5,-5,8,-1,3,-2,3,1,6,2,2,1,5,-1,6,4,7,1,-7,4,7,9,3,4,4,8,4,5,1,2,-1,8,3,6,1,2,3,3,0,5,0,11,3,5,5,3,5,5,5,1,4,0,5,7,9,4,-9,5,2,-4,5,3,5,5,-2,1,7,5,5,3,4,5,2,0,3,4,-1,0,2,5,1,5,2,7,-5,6,-6,6,0,6,-1,-2,6,5,8,4,2,-1,3,4,6,6,3,5,-1,9,2,0,5,-8,3,6,2,6,-3,6,-4,8,-2,3,1,6,-3,6,2,4,0,2,1,5,-5,-3,-5,-4,-4,-3,0,1,-4,-3,-5,-4,-5,1,-3,8,-6,8,-3,5,-3,7,-6,3,0,5,-3,2,-3,9,-3,7,3,2,6,2,4,1,6,3,8,-1,4,0,3,-1,6,2,8,1,2,-1,3,2,5,2,6,0,3,4,3,3,-5,1,-6,2,-1,1,-4,3,-5,1,-6,0,-4;1621,-105,3,-3,-7,0,-4,6,6,-2,2,-1;1207,-102,-4,-1,-13,7,9,2,5,-3,4,-3,-1,-2;1609,-99,-4,0,-6,1,-3,2,1,4,7,-2,3,-2,2,-3;1617,-96,-2,-2,-7,9,-2,6,3,0,4,-8,4,-5;1244,-101,-8,-3,-1,2,1,3,4,6,10,4,1,2,8,3,7,0,4,1,3,-1,-3,-3,-11,-4,-8,-3,-7,-7;1179,-81,4,-3,6,1,2,-4,-11,-2,-7,-1,-6,0,4,5,5,1,3,3;1229,-81,-1,-6,-15,-2,-14,1,0,4,8,2,6,-3,7,0,9,4;1599,-83,0,-2,-8,4,-5,3,-4,4,2,1,4,-3,8,-4,3,-3;1575,-73,-2,-1,-4,2,-4,4,0,2,6,-4,4,-3;1086,-68,19,-1,3,4,18,-4,4,-7,15,-2,12,-6,-11,-4,-11,5,-9,-1,-11,1,-9,2,-12,4,-7,1,-4,-2,-18,4,-2,5,-9,0,7,10,12,-1,8,-3,4,-1,1,-4;1347,-62,-5,-7,-1,8,2,3,2,4,2,-3,0,-5;1559,-68,-3,-1,-4,4,-5,6,-2,8,2,1,1,-3,3,-3,4,-6,5,-3,-1,-3;1520,-55,-5,-1,-2,-2,-5,-3,-6,-2,-5,0,-8,3,-6,3,1,3,9,-2,5,1,2,5,1,0,1,-5,6,0,3,4,5,3,-1,6,6,1,2,-2,0,-6,-3,-6;1272,-35,-3,-3,-7,2,-2,4,10,1,2,-4;1305,-31,3,-8,-8,5,-8,0,-6,0,-7,0,2,6,13,0,11,-3;1531,-45,-3,-3,-2,6,-2,4,-4,3,-6,5,-7,3,2,2,6,-3,3,-2,4,-2,4,-5,4,-3,1,-5;1341,-12,3,-16,11,-6,8,11,11,6,9,0,9,-4,7,-3,11,-2,17,-7,19,-6,7,-5,5,-5,2,-6,16,-6,3,-5,-9,-1,2,-7,9,-6,6,-11,6,0,0,-4,7,-2,-3,-2,11,-4,-1,-3,-7,-1,-2,3,-9,1,-10,2,-8,6,-5,6,-6,8,-13,5,-8,-3,-6,-3,1,-8,-8,-3,-5,1,-11,1,-9,8,-10,2,-2,-3,-13,0,4,8,7,3,-3,11,-5,8,-19,9,-8,0,-15,10,-3,-5,-4,-1,-2,4,0,4,-8,5,11,3,7,0,-1,3,-15,0,-4,6,-9,2,-4,5,14,2,5,3,16,-4,1,-4;1252,14,-8,-10,-7,-2,-10,2,-16,0,-9,-2,-2,-7,9,-9,6,4,18,4,0,-5,-5,2,-4,-6,-9,-4,10,-13,-2,-3,9,-12,0,-6,-6,-3,-4,3,5,8,-10,-4,-2,3,1,4,-7,6,1,10,-7,-3,1,-12,0,-14,-6,-2,-4,3,3,9,-2,10,-4,0,-3,7,4,7,1,7,5,16,2,4,9,7,8,-3,12,-1,12,0,10,7,1,-2;1287,11,-1,-8,-5,1,-1,-7,4,-5,-3,-1,-4,6,-3,13,2,8,3,4,1,-6,6,-1,1,-4;1058,-59,-11,0,-8,9,-13,8,-4,6,-8,8,-5,7,-8,14,-8,9,-3,8,-4,8,-9,7,-5,8,-8,6,-10,11,-1,5,6,-1,16,-2,9,-9,7,-7,6,-4,9,-11,11,0,8,-7,6,-8,7,-5,-4,-8,6,-4,4,0,1,-7,4,-5,7,-1,5,-7,-2,-12,-1,-16;1179,18,11,-9,-12,-1,-3,-7,0,-9,-9,-7,-1,-10,-4,-15,-1,3,-11,-4,-4,6,-7,1,-5,3,-12,-4,-4,5,-7,0,-8,1,-1,13,-5,3,-5,8,-1,9,1,9,6,7,7,-3,8,2,2,8,4,2,12,2,7,8,5,6,4,4,9,5,7,7,5,8,4,0,5,-5,1,-4,6,-3,9,-3,-1,-4,-7,0,2,-5,-7,-4,-6,-9,7,-9,-1,-5;1264,84,1,-6,0,-6,-3,-9,-4,10,-4,-5,3,-8,-3,-4,-12,6,-3,7,3,5,-6,4,-3,-4,-5,1,-7,-6,-2,3,4,8,6,3,6,4,3,-5,8,3,2,5,7,0,-1,8,8,-5,1,-5,1,-4;812,62,-9,-2,-4,8,-2,14,4,16,7,-5,5,-7,5,-11,-2,-10,-4,-3;-609,101,-9,-1,-2,1,3,3,0,4,6,1,2,0,0,-8;1240,103,-4,-4,-3,-6,-3,-3,-6,7,2,3,2,3,1,6,6,0,-2,-6,8,9,-1,-9;1185,93,-13,-9,5,7,7,6,6,7,5,10,2,-8,-7,-6,-5,-7;1219,119,6,-3,6,0,0,-4,-5,-5,-6,-3,0,5,0,5,-1,5;1255,122,3,-12,-8,3,0,-3,3,-6,-5,-3,0,7,-3,1,-2,6,6,-1,0,4,-6,8,9,-1,3,-3;1215,131,-2,-9,-5,5,-5,8,9,-1,3,-3;1213,185,6,-3,3,3,1,-3,-1,-4,3,-7,-2,-8,-6,-4,-2,-8,2,-8,6,-1,4,1,13,-5,-1,-6,3,-2,-1,-5,-8,5,-4,6,-2,-4,-7,6,-9,-2,-5,3,1,4,3,2,-3,3,-1,-4,-5,6,-2,4,0,10,4,-4,1,16,3,9,6,0;-656,182,-2,-2,-8,0,-6,-1,0,5,1,1,8,0,5,-1,2,-2;-769,179,-3,-2,-6,2,-5,3,1,3,4,0,2,0,7,-1,5,-2,2,-3,-7,0;-726,199,9,-2,1,2,8,0,6,-3,2,0,2,-3,6,0,-1,-3,5,0,5,-4,-4,-4,-5,2,-4,0,-4,0,-1,-2,-4,0,-2,2,-3,-1,-4,-7,-3,2,0,2,-7,2,-4,-1,-7,1,-4,-2,-6,3,1,4,10,-2,7,-1,4,3,-5,4,0,4,-6,1,2,3,6,0;1103,187,-8,-5,-8,3,-1,9,5,4,11,3,6,0,2,-4,-4,-4,-3,-6;-1555,191,-2,-2,-2,2,0,2,-2,4,1,1,1,2,0,2,0,1,1,-1,4,-1,2,-1,1,-1,3,-4,-4,-3,-3,-1;-1561,206,-3,0,-2,2,-1,1,1,1,3,-1,3,-1,-1,-2;-1568,212,0,-1,-5,0,0,1,5,0;-1577,213,-1,0,-3,0,-2,2,0,1,3,1,1,0,2,-4;-1593,220,-2,-1,-3,2,1,0,1,1,2,0,1,-2;-797,228,4,-4,10,1,3,-2,9,-6,6,-5,3,0,6,-2,-1,-3,8,0,7,-4,-1,-2,-7,-2,-6,0,-7,1,-15,-1,7,5,-4,3,-6,0,-4,3,-2,6,-6,0,-9,2,-3,2,-13,2,-4,2,4,2,-10,1,-7,-5,-4,0,-2,-3,-4,-1,-5,1,6,3,2,4,4,2,5,2,8,1,2,1,9,-1,8,0,9,-3;-775,238,-3,-1,-2,6,-4,3,2,6,3,0,4,-9,0,-5;1212,228,-5,-8,-5,8,-1,8,6,9,8,8,5,-3,-2,-6,-6,-16;-778,266,-11,-2,-1,4,5,1,7,-1,0,-2;-770,266,-2,-7,-2,1,1,5,-5,4,0,1,8,-4;1346,341,2,-3,-6,-6,-4,3,-5,-2,-3,-6,-6,3,0,5,5,6,6,-2,4,5,7,-3;346,357,-7,-5,1,-1,0,-1,-10,-4,-5,1,-2,4,4,0,1,0,1,3,8,0,9,3;237,357,5,-3,8,0,8,0,-1,-2,6,1,-1,-3,-15,-1,0,2,-12,2,2,4;155,382,-3,-8,1,-3,-2,-5,-8,4,-5,1,-14,5,2,5,11,-1,11,1,7,1;92,412,6,-7,-1,-13,-5,0,-4,-3,-4,3,0,12,-2,6,5,-1,5,3;1410,371,-4,-8,2,-5,-5,-7,-13,-4,-18,-1,-14,-11,-7,3,0,8,-18,-2,-11,-5,-12,0,10,-8,-7,-16,-6,-5,-5,4,2,9,-6,3,-4,7,10,3,5,6,10,6,7,6,20,3,11,-2,10,18,7,-5,15,10,5,4,7,12,-2,12,4,6,11,2,5,-14,0,-8,-9,-10,0,-11;96,422,-4,-8,-4,2,-3,7,2,3,7,4,2,-8;1439,442,7,-2,7,4,2,-11,-14,-3,-9,-10,-16,7,-5,-11,-11,0,-2,10,5,7,11,1,3,14,3,8,11,-11,8,-3;-637,465,8,-1,9,0,-5,-4,-4,0,-12,4,-3,3,4,3,3,-5;-618,491,-5,0,-13,3,-9,5,3,1,13,-3,11,-4,0,-2;-1235,485,-5,-1,-17,4,-3,4,-8,3,-2,3,-11,2,-3,5,0,3,11,-2,6,-2,9,-1,4,-4,5,-4,10,-4,4,-6;-561,507,-7,-9,7,3,6,-2,-3,-3,9,-3,4,3,10,-4,-3,-7,7,2,1,-5,4,-7,-5,-8,-4,-1,-7,2,2,8,-2,2,-12,-9,-6,0,7,5,-10,2,-10,0,-20,0,-1,3,6,4,-4,2,8,6,10,16,7,6,8,3,5,0,-2,-3,-5,-6;-1327,540,10,1,-4,-11,9,-8,-4,0,-6,4,-4,5,-5,3,-1,5,0,3,5,-2;1436,507,11,-17,-15,3,-6,-14,9,-11,0,-7,-8,6,-6,-7,-2,8,1,10,-1,11,2,7,1,14,-6,9,1,14,9,5,-4,4,5,2,2,-7,4,-10,-1,-9,4,-11;-68,523,-18,-6,-14,1,8,11,-5,10,14,8,7,4,9,1,10,-6,-5,-7,2,-7,-8,-9;127,556,-6,-8,-11,6,-1,4,15,3,3,-5;-1530,571,-10,-4,-5,3,-2,5,9,3,6,2,6,-1,5,-3,-9,-5;-30,586,-11,-10,10,1,11,0,-2,-8,-9,-9,10,-1,10,-13,7,-1,6,-12,3,-4,12,-2,-1,-6,-6,-3,4,-5,-9,-5,-13,0,-17,-3,-5,2,-6,-5,-9,1,-7,-3,-6,2,15,10,9,2,-16,2,-3,4,11,3,-6,5,2,7,15,-1,2,6,-7,6,-12,2,-3,3,4,4,-3,3,-6,-5,0,10,-6,5,4,10,8,8,8,0,12,0;-1656,599,-6,-1,-6,1,-7,3,10,2,8,-1,1,-4;-793,622,-4,-6,-4,1,-3,3,1,1,4,3,4,0,2,-2;-819,627,-12,-5,-7,0,-2,3,8,4,13,0,0,-2;-1717,638,6,-2,6,1,8,-3,10,-1,-1,-1,-7,-2,-8,2,-4,2,-9,-1,-2,1,1,4;-852,657,2,-5,5,2,6,-3,11,-3,12,-3,0,-5,8,1,7,-4,-9,-3,-15,3,-6,4,-10,-5,-14,-5,-4,5,-13,-1,8,5,2,8,3,9,7,0;-145,665,-2,-7,11,-7,-13,-7,-29,-7,-9,-2,-13,1,-28,4,10,4,-22,5,18,2,0,3,-21,2,6,7,16,1,15,-7,15,6,13,-3,16,5,17,0;-759,671,-11,0,-2,5,4,5,9,2,8,-3,0,-4,-1,-2,-7,-3;-1800,690,25,-8,26,-10,-1,-6,7,-3,-3,8,27,-2,20,-9,-10,-5,-16,-1,-1,-9,-4,-2,-9,0,-8,3,-13,3,-2,5,-10,1,-12,-1,-5,3,2,4,-12,-2,5,-5,-6,-4,3600,0,-13,-5,-13,1,9,-5,6,-8,5,-3,1,-4,-3,-3,-18,2,-28,-7,-9,-1,-16,-8,-14,-6,-4,-4,-14,7,-26,-8,-5,4,-9,-5,-14,2,-3,-7,-12,-10,1,-4,11,-2,-1,-14,-10,-1,-4,-8,4,-4,-17,-6,-4,-11,-15,-2,-3,-11,-14,-9,-4,7,-4,15,-6,22,5,14,9,6,0,4,16,3,17,12,18,10,18,8,8,15,-12,-1,-6,-9,-26,-11,-8,13,-26,-4,-25,-16,8,-7,-22,-2,-15,-1,0,7,-15,2,-13,-5,-30,1,-33,-3,-32,-19,-39,-24,16,-1,5,-6,10,-2,6,5,11,-1,14,-11,1,-9,-8,-10,-1,-12,-4,-16,-15,-14,-4,-7,-13,-12,-14,-11,-6,-6,-14,-6,-6,0,-6,5,-14,-7,-1,-4,-4,1,-4,-4,-3,-3,0,-7,-5,-2,-2,-2,-4,-3,-6,-2,-5,-2,0,-5,-1,-1,4,-1,6,-5,8,-12,3,-6,0,-12,-4,-5,-9,-2,-8,-4,-9,-1,-1,5,2,8,-5,10,8,2,-7,8,-5,2,-1,-1,-3,-1,-1,2,-2,0,-3,2,3,4,2,2,-1,1,3,6,-1,2,-6,1,-4,2,-14,-3,-8,-4,-10,-3,5,5,-2,4,8,6,-6,5,-8,-3,-12,-7,-6,-6,-10,-1,-5,-5,6,-6,8,-2,0,-5,8,-2,11,7,9,-4,7,0,1,-6,-14,-2,-5,-6,-9,-5,-5,-7,10,-5,4,-10,6,-9,7,-8,0,-8,-6,-2,2,-6,6,-3,-2,-8,-2,-8,-6,-1,-7,-10,-8,-14,-9,-12,-14,-9,-14,-8,-11,-1,-6,-5,-4,3,-6,-4,-14,-5,-10,-2,-4,-11,-5,0,-3,7,3,4,-14,3,-5,-1,-13,-9,-8,-9,-2,-7,7,-11,10,-13,9,-6,6,-8,4,-19,-1,-17,-8,-7,-12,-6,-8,-9,-12,-9,-4,6,3,7,-8,6,-8,1,-4,6,-5,10,-9,4,-9,0,2,8,-9,0,-1,-11,-5,-15,-3,-8,0,-8,7,0,4,-9,2,-9,5,-5,6,-2,5,-5,3,-1,6,-6,4,-6,0,-7,-1,-5,1,-3,1,-6,4,-3,3,-9,0,-3,-7,-1,-9,8,-12,8,-1,5,-6,6,-1,9,-4,5,1,7,-2,5,-4,3,-2,5,-5,6,-5,5,-2,-6,-2,5,2,7,3,9,-1,8,3,7,-4,6,1,11,-4,5,-3,12,-2,13,-4,8,-7,-5,-11,-7,-6,1,-6,2,3,13,-2,9,-8,12,2,3,-6,2,-7,8,-3,5,-1,5,-2,5,-4,6,-9,0,1,-4,-3,-6,-5,2,-1,-1,-3,1,-4,1,-1,-4,-7,0,-12,-2,0,-8,-5,-5,-14,-7,-12,-12,-7,-6,-10,-7,0,-4,-5,-3,-9,-3,-5,-1,-3,-8,2,-13,1,-8,-4,-9,0,-17,-6,-1,-4,-8,3,-3,-9,-3,-4,-6,-4,-3,-9,9,-5,14,-4,10,-3,5,-5,9,-3,13,-2,6,-9,14,-4,19,-3,13,0,12,-2,10,-14,-6,-7,1,-13,12,4,4,-3,3,-11,9,-8,2,-3,8,-7,7,-19,-2,-16,0,-14,-1,-19,3,-11,2,-11,1,-4,13,-5,1,-8,-1,-10,-5,-12,3,-10,8,-10,3,-6,9,-8,13,-5,-1,-7,3,-3,-4,-6,1,2,-5,-1,-2,3,-7,4,-9,5,-2,2,-4,7,-4,0,-4,-1,-4,1,-3,3,-3,2,-3,1,-2,-1,7,3,5,3,1,3,-3,0,-6,-2,-6,2,-4,2,1,0,-3,8,2,8,0,6,-1,7,7,7,6,7,7,3,3,1,-1,-1,-4,-1,-2,1,-8,4,-7,6,-3,7,-2,6,-1,5,-6,2,-3,4,-2,0,-2,-4,-6,-1,-3,-4,-3,-4,-7,-5,1,-2,-3,-1,-5,1,-6,-1,-2,-5,0,-6,-3,-1,-5,-2,-2,-6,0,-4,-3,0,-4,-5,-3,-6,1,-6,-3,-5,0,-7,-3,-2,-5,0,-3,-10,-4,-16,-5,-9,-7,-5,-1,-3,1,-5,-4,-7,-2,-8,-1,-3,0,-2,-3,-3,0,-1,-3,-5,0,-3,-1,-7,0,-3,6,1,6,-2,3,-2,7,-3,4,2,1,-1,4,1,2,0,4,-1,5,-4,3,0,4,-5,3,-6,9,-3,8,-7,7,-4,1,-7,10,-1,7,1,6,-6,11,-5,4,-5,2,-3,6,0,2,-3,5,-3,2,-3,8,-7,8,-5,7,-5,0,2,5,0,4,2,4,-1,1,-3,-4,-2,-8,-2,-5,-3,-2,-3,4,-5,4,-7,15,-1,-1,4,-11,6,-10,8,-16,4,-5,3,-6,9,-11,-2,-1,0,-7,12,-9,2,-2,3,-10,-2,-2,1,-10,4,-12,4,-2,5,-4,6,-12,3,-9,5,-5,14,-9,5,-6,6,-6,3,-3,5,-3,2,-3,0,-4,-6,-3,4,-2,4,-2,2,-4,4,-5,5,0,10,3,10,1,9,3,5,1,4,2,5,0,4,0,4,2,6,1,4,3,4,0,0,-3,-1,-5,0,-6,-2,-3,-2,-11,-5,-11,-6,-13,-9,-15,-9,-11,-11,-13,-10,-9,-15,-9,-10,-8,-11,-12,-2,-5,-2,-3,-7,-4,-3,-4,-3,-1,-2,-7,-3,-4,-2,-6,-4,-4,-5,-12,1,-6,6,-3,1,-3,-3,-6,1,-3,-1,-5,3,-6,5,-10,3,-2,2,-5,-1,-10,2,-8,0,-16,2,-5,-3,-7,-4,-7,-6,-6,-10,-4,-11,-5,-11,-11,-4,-1,-7,-8,-4,-2,-1,-7,5,-8,2,-5,0,-3,2,0,-1,-10,-1,-4,2,-2,-1,-4,-5,-4,-8,-3,-12,-6,-4,-3,1,-4,2,-1,-1,-5,-2,-8,-1,-8,-3,-5,-7,-5,-2,-1,-4,-5,-3,-5,-5,-7,-12,-11,-7,-6,-7,-4,-11,-4,-5,-1,-1,-2,-6,1,-5,-2,-11,2,-6,-1,-4,0,-11,-4,-8,-1,-6,-4,-5,0,-4,3,-3,1,-5,4,0,-1,-2,2,1,6,-4,7,3,2,0,7,-6,10,-5,8,-8,13,-7,8,-4,7,-2,10,-3,7,-3,15,0,12,-1,6,-4,4,-5,8,-6,12,-2,7,-8,9,-1,8,-1,6,2,9,3,9,1,5,3,9,2,4,6,6,3,5,1,7,0,6,-3,3,-3,6,-2,6,0,2,3,4,-3,10,-2,7,-5,6,1,2,-1,3,-3,8,-8,10,-10,10,-7,9,-6,10,0,3,2,3,3,8,2,7,-2,2,3,11,2,8,-4,6,-5,2,-2,5,-2,1,0,3,-10,-4,-4,1,-4,-3,-8,1,-5,6,-4,7,-7,7,-7,0,-9,0,-8,-2,-8,-2,-16,-6,-6,-3,-9,-3,-9,3,-4,0,-7,2,-6,0,-12,-2,-7,-3,-10,-4,-2,1,-3,0,-10,4,-9,8,-9,5,-6,7,-3,1,-7,4,-5,5,-2,4,-1,7,-5,6,-4,4,-2,1,-3,2,-1,5,-1,2,-3,1,-6,5,-4,0,-2,3,0,2,-3,2,-1,2,-1,8,1,4,-4,8,-5,3,4,2,5,7,2,5,-1,6,3,5,2,9,-2,10,-1,5,1,5,-2,5,-6,4,1,4,0,5,4,3,3,5,0,3,3,7,6,7,3,1,3,6,0,5,4,7,6,3,7,10,5,4,9,1,8,7,5,3,8,8,-2,13,4,8,1,6,6,6,10,5,8,4,7,10,3,7,7,0,6,-5,10,1,10,-2,4,0,10,5,11,2,6,4,10,3,17,2,16,1,5,-2,10,4,10,0,4,-2,7,0,11,5,7,-2,0,-5,8,4,1,-2,-5,-5,0,-5,3,-2,-1,-9,-6,-5,1,-5,6,0,2,-5,4,-2,12,-3,4,1,8,-2,13,-4,5,-9,9,-2,14,-4,11,-5,5,2,5,5,-3,8,3,4,8,5,6,1,14,-2,3,-4,4,0,3,-2,10,-1,3,-3,13,0,10,-3,9,-3,5,-1,8,3,4,3,9,1,7,-2,3,-5,2,4,8,-3,8,0,5,2,3,3,-1,1,3,5,2,7,1,3,4,8,5,7,-1,8,2,4,-3,5,4,4,-6,-1,-9,2,-7,-6,-15,-1,-8,5,-11,1,-2,-4,-7,-2,-10,6,-11,0,-6,10,-7,5,5,8,-6,5,11,9,15,1,4,7,19,-1,12,6,12,3,17,0,17,-7,14,-4,12,2,9,-1,12,5,1,5,-2,6,-6,4,-6,1,-3,3,-13,9,-12,4,-8,5,7,2,8,8,-5,4,14,4,0,3,-9,-2,-8,-1,-6,-3,-10,-1,-8,-3,0,-6,5,-3,10,1,-2,-4,-11,-2,-13,-5,-6,2,2,4,-10,3,1,2,10,4,-3,2,-16,2,0,4,-10,-1,-3,-6,-8,-7,0,-3,-5,-2,-3,1,-2,-12,-6,-4,-3,-7,3,-6,1,-4,9,-3,-2,-2,-12,-1,-4,-3,-8,-5,-4,4,1,2,-7,1,-5,0,-12,-2,7,-6,-5,-1,-6,0,-5,5,-2,-2,3,-6,5,-5,-4,-2,5,-5,5,-3,0,-5,-9,2,3,-5,-6,-1,4,-9,-7,0,-8,4,-4,8,-2,7,-4,5,-5,5,0,3,-2,1,0,2,-6,4,-1,4,1,7,1,3,-1,2,-2,1,-3,3,-5,2,-9,3,-6,4,-9,3,-8,7,2,1,-5,4,0,4,-6,1,-3,-4,-3,3,0,4,2,1,-8,1,-8,-3,1,-5,-1,-3,3,-5,9,-5,5,-8,11,-8,8,0,3,-3,-3,-2,9,-3,7,-3,9,-5,1,-2,-2,-4,-6,5,-8,1,-4,-6,7,-4,-1,-5,-5,-1,-5,-8,-4,-1,0,3,2,6,2,2,-4,5,-3,5,-4,2,-3,4,-6,2,-5,4,-7,1,-8,4,-9,7,-7,5,-3,10,-5,1,-8,4,-5,-2,-6,-4,-4,-1,-9,-6,-19,3,-15,-3,-1,-6,0,-6,-9,-7,-13,-2,-1,-3,-6,-6,-4,-8,4,-6,-6,-4,-2,-7,-7,-2,-7,-7,-13,0,-10,0,-6,-4,-4,-4,-5,1,-3,4,-3,5,-10,2,-4,-3,-5,2,-5,-1,2,8,-1,6,-5,1,-2,3,1,7,4,4,0,4,2,6,0,4,-2,3,0,4,0,7,-4,4,14,7,12,-1,14,0,11,-2,8,1,16,-1,5,6,2,20,-10,11,-8,5,-15,4,-1,7,13,2,17,-3,-3,12,9,-5,23,8,3,8,9,2,8,2,5,3,9,15,14,4,8,0,2,2,8,0,2,-2,7,5,-2,4,-1,6,-4,5,0,10,2,3,2,3,9,1,4,2,8,3,-1,-5,-2,-3,1,-3,5,-1,-2,-4,-3,1,-8,-7,3,-5,0,-4,10,-2,0,-4,11,2,5,3,11,-4,5,-3,7,3,16,4,12,4,10,-2,1,-3,10,0,2,5,14,3,-2,8,0,8,5,6,9,4,8,-8,8,0,2,8,1,6,-3,-1,-7,3,-1,6,13,3,13,1,10,-2,11,1,11,5,-10,5,-18,-1,-18,-3,-16,-3,-6,6,-10,3,2,10,-4,9,4,6,9,6,23,11,7,2,-1,4,-14,5,-17,-3,-10,-7,2,-6,-16,-8,-20,-9,-7,-14,7,-7,10,-5,-9,-11,-11,-3,-4,-17,-5,-9,-12,1,-6,-8,-12,0,-3,9,-8,11,-8,15,-6,6,-20,-12,-13,-2,-14,5,-4,11,-3,23,9,6,27,9,19,10,19,14,24,19,16,8,28,12,22,5,16,-1,15,8,19,0,18,2,31,-7,-13,-3,11,-6,10,3,17,-6,27,-2,38,-12,8,-4,0,-7,-11,-5,-16,-3,-45,8,-7,-2,16,-7,1,-15,13,-3,8,-2,1,4,-6,5,7,3,24,-6,8,3,-6,7,23,10,9,-1,10,-3,5,7,-8,6,5,6,-7,6,28,-4,5,-5,-12,-1,0,-6,7,-3,16,2,2,6,21,5,35,9,8,-1,-10,-6,12,-1,7,3,19,1,15,4,11,-6,12,6,-11,6,6,4,29,-4,14,-3,36,-11,7,5,-10,5,-1,3,-12,1,4,4,-6,8,0,3,18,9,7,9,7,2,27,-2,2,-6,-10,-8,7,-3,3,-7,-2,-14,11,-6,-5,-7,-19,-14,11,-1,4,3,11,3,3,5,9,5,-6,5,4,7,-11,1,-2,5,8,10,-13,8,18,7,-2,7,5,1,5,-6,-4,-10,11,-1,-5,7,17,4,21,0,18,-6,-9,9,-1,10,18,3,24,-1,21,1,-8,6,12,6,11,0,20,5,26,2,3,2,27,1,8,-2,22,5,19,0,2,5,10,4,24,4,17,-3,-14,-3,23,-1,2,-5,10,2,29,0,22,-5,8,-4,-2,-5,-11,-3,-26,-5,-8,-3,12,-2,15,-2,9,2,5,-7,5,3,16,2,32,-2,2,-5,42,-1,1,7,21,-1,16,0,16,-6,5,-6,-6,-4,12,-8,16,-4,10,10,16,-4,17,3,19,-4,7,3,17,-1,-8,9,14,4,90,-6,9,-6,26,-8,40,2,20,-1,8,-4,-1,-8,12,-3,14,2,18,1,18,-2,19,1,18,-9,12,3,-8,7,5,4,31,-3,21,1,29,-5,-3586,-4;491,413,5,-7,5,-1,3,-2,-8,-1,-2,-8,-2,-4,-3,-2,0,-5,3,-7,9,-2,7,-5,15,-2,15,3,1,2,-2,7,2,11,-8,3,3,7,-7,0,2,9,10,-3,8,4,-7,6,-3,5,-8,-2,-1,-8,-3,7,-1,2,3,4,-2,4,-12,3,-4,9,-6,3,0,3,10,-1,0,7,9,2,8,-1,2,9,-2,7,-10,-1,-8,2,-12,-4,-9,-2,-5,-6,-9,-2,-10,-10,9,-9,-1,-7,11,-12,5,-5;-956,691,-7,-3,-13,3,-8,-1,-14,4,9,3,7,4,10,-2,6,-2,3,-2,7,-4;-1800,715,3600,-7,-11,0,-2,3,-3587,4;-1800,715,1,1,9,0,14,-3,-1,-2,-10,-2,-13,-1,0,7;-905,695,0,-10,13,8,12,-7,-3,-7,10,-7,10,7,7,9,1,11,14,-1,15,-1,13,-5,1,-5,-8,-6,7,-5,-1,-5,-19,-7,-14,-1,-11,3,-3,-5,-9,-9,-3,-4,-12,-7,-14,-1,-8,-4,-1,-6,-11,-2,-13,-8,-10,-11,-4,-8,-1,-12,15,-1,4,-10,5,-7,14,2,19,-4,10,-4,7,-5,12,-3,11,-4,16,-1,11,-1,-1,-8,3,-10,7,-11,15,-10,8,3,5,11,-5,15,-7,6,16,4,11,7,6,7,-1,7,-7,9,-12,7,12,11,-5,9,-3,15,7,3,17,-3,10,-1,9,2,9,-3,12,-6,3,-4,18,0,0,-9,3,-12,9,-2,7,-6,15,6,10,11,6,4,8,-9,13,-12,11,-12,-4,-7,13,-5,9,-6,16,-3,7,-3,4,-8,7,-2,4,-3,1,-12,-7,-3,-7,-4,-17,-3,-12,-9,-17,-1,-22,2,-15,0,-10,-1,-8,-7,-13,-4,-15,-14,-11,-9,8,2,16,13,21,8,15,1,9,-5,-9,-6,3,-11,3,-8,13,-5,17,2,10,11,0,-7,7,-4,-12,-6,-23,-6,-9,-4,-12,-8,-7,1,-1,9,18,8,-16,0,-11,-2,1,-3,-10,-5,-11,-3,-10,-3,-6,-7,-1,-1,0,-6,3,-5,4,0,-1,3,3,-2,-1,-3,-6,-1,-5,0,-8,-2,-4,0,-6,-1,-8,-3,15,2,3,-2,-14,-3,-7,0,0,2,-3,-3,3,-1,-2,-7,-7,-8,-1,3,-2,0,-3,3,2,-5,2,-2,0,-4,-3,-4,-5,-8,-1,1,3,6,-5,4,-2,8,-1,-4,2,-6,-7,1,7,-3,0,-9,3,-1,1,-3,2,-10,-7,-8,-10,-3,-7,-6,-5,0,-5,-4,-1,-3,-11,-7,-6,-5,-4,-6,-2,-7,2,-7,3,-8,5,-7,0,-5,4,-11,0,-7,0,-4,-3,-6,-3,-1,-5,1,-1,4,-4,3,-5,8,-5,8,-2,4,2,7,-2,5,-8,8,-4,2,-10,-5,-2,1,-5,5,-6,2,-11,-1,-9,1,-8,-1,-4,-1,2,-3,0,-4,2,-2,-2,-1,-4,1,-4,-2,-7,0,-7,6,-9,-1,-7,2,-6,-1,-9,-2,-9,-8,-10,-4,-5,-5,-3,-4,0,-7,1,-5,2,-3,-4,-9,-2,-7,-1,-14,-1,-5,2,-5,3,-5,2,-8,7,-7,2,-6,4,-5,11,-2,4,-5,9,3,7,1,8,2,6,2,6,4,3,6,0,8,2,3,7,3,11,2,8,0,6,0,3,-2,0,-5,-6,-5,-2,-7,2,-1,-2,-5,-2,-7,-3,2,-2,0,0,-1,2,-1,0,-2,-2,-5,1,-1,-1,-4,1,-1,-2,-5,-2,-2,-1,-1,-2,-3,3,-2,1,2,3,-2,1,0,2,2,3,0,1,-1,1,0,5,0,5,0,3,1,1,1,3,0,3,-1,2,0,2,1,5,-1,1,-1,3,-2,3,-2,4,-1,3,-3,-1,-1,-1,-2,1,-4,-2,-3,-1,-4,-1,-5,1,-2,0,-5,-1,-1,-1,-4,0,-3,-2,-2,1,-3,1,-2,3,-5,4,-4,5,-4,3,-4,0,-2,4,0,1,0,3,-2,5,1,4,2,6,2,3,3,6,0,-1,-1,6,-1,4,-2,4,-3,3,-2,6,-1,7,7,4,1,0,4,2,8,6,5,6,0,1,2,8,-1,8,5,4,3,4,4,4,0,3,-3,-2,-3,-1,-3,-5,-1,3,-4,0,-6,-5,-5,4,-8,4,0,3,8,-4,3,0,8,12,4,-1,4,4,4,3,-7,7,-1,7,-5,0,-3,9,-1,11,1,5,-4,8,-1,6,3,0,2,12,1,12,0,-8,-3,3,-5,8,0,8,-5,1,-8,5,0,4,-2,7,-4,6,-7,0,-5,4,0,6,-5,4,-3,12,-2,1,2,8,0,10,-2,4,-2,7,-2,11,-8,1,-4,4,0,2,-6,6,-17,5,-2,1,-7,-8,-8,3,-3,18,-1,0,-10,8,6,12,-3,17,-7,5,-5,-2,-6,12,3,19,-5,15,0,15,-8,13,-11,7,-3,9,0,4,-4,3,-12,2,-6,-4,-17,-5,-6,-14,-14,-7,-12,-7,-8,-3,-1,-3,-7,1,-19,-3,-15,-1,-7,-3,-4,-2,-13,-10,-13,-1,-10,-9,-5,-2,-6,-11,0,-15,-4,-8,-4,-11,-3,-11,-8,-9,-10,-1,-7,1,-6,-2,-10,-2,-5,-7,-5,-11,-18,-9,-8,-7,-4,-4,-10,-7,-6,-4,-6,-11,-6,-8,2,-5,-1,-9,5,-7,-1,-6,6,-1,-5,13,-9,-2,-7,7,-4,-1,-5,-9,-13,-15,-5,-20,-2,-11,1,2,-6,-2,-8,2,-5,-6,-3,-11,-2,-9,4,-4,-3,1,-10,7,-3,5,4,3,-6,-9,-3,-8,-6,-1,-10,-3,-5,-9,0,-8,-6,-3,-7,10,-7,10,-2,-4,-9,-12,-6,-6,-12,-9,-4,-4,-4,3,-11,6,-6,-4,1,-9,0,-4,-2,-9,-4,-2,-9,-4,-1,-12,4,-11,7,-12,5,-4,7,3,6,-5,6,-1,17,4,10,11,8,-15,3,9,8,3,17,12,-4,5,21,-7,3,-3,-13,-6,2,3,14,3,19,5,6,-3,10,-1,11,4,1,6,16,7,16,5,15,-3,15,3,8,-1,12,6,13,2,19,3,21,3,22,-1,16,-2,15,-10,5,-1,4,-19,10,-18,11,-8,7,-4,8,1,3,-8,13,-10,18,-9,20,-4,5,-4,7,-7,7,-8,4,4,4,-5,10,3,7,8,6,5,7,-2,5,-4,-5,-6,5,2,2,-1,9,3,2,2,6,4,7,-1,4,6,2,6,4,-1,3,4,1,-1,5,3,3,5,1,4,6,4,5,-4,3,2,6,-2,9,2,2,-2,9,-4,5,-3,3,-2,6,2,2,-2,1,-2,3,-5,3,-5,-1,-2,-3,-4,-3,-2,0,-1,-2,5,-6,-3,-1,-1,-1,-5,-1,-2,6,-1,-2,-3,1,-2,4,-4,1,-3,1,-4,0,0,-2,-2,1,-5,2,-2,3,1,1,0,3,-3,2,-4,2,-3,1,-1,3,-3,2,1,-3,-2,-2,-2,2,-4,1,-1,2,0,3,1,4,-2,1,2,2,-4,3,-4,4,-2,3,-5,4,-5,4,1,2,2,-2,1,1,-2,3,-3,1,-1,-3,-6,1,-3,1,-5,2,-5,0,-3,2,-5,2,-6,0,-5,2,-5,4,-12,11,-5,3,-8,3,-6,-1,-8,-3,-5,-1,-7,2,-7,2,-9,5,-8,1,-11,5,-9,4,-2,3,-6,1,-10,3,-4,4,-11,6,-5,6,-2,5,3,1,-1,3,2,3,0,3,-3,5,-1,4,-3,5,-9,10,-10,7,-5,7,-9,4,-1,2,1,6,-5,3,-6,5,-2,7,-6,0,-6,6,-4,5,-1,3,-5,7,-4,8,1,4,-8,4,-3,-1,-6,3,-1,-4,1,-5,1,-7,4,-4,7,-7,2,-3,1,0,2,-4,1,0,2,-6,3,-3,3,-3,6,-5,3,-10,3,-4,3,-5,0,-5,5,0,4,-5,4,-4,0,-2,-5,-4,-1,0,-3,6,-7,6,-7,5,-5,2,0,8,-1,5,-5,3,-7,5,-1,-2,-2,3,-7,2,-6,6,1,1,4,-1,4,4,0,5,-7,7,-6,3,-4,6,-4,6,-4,8,-4,9,-2,5,-6,6,-5,1,-1,3,-6,1,-3,2,-10,1,-2,2,-1,6,-10,10,-8,14,0,2,-5,3,-7,9,-2,8,-5,5,2,8,0,9,-3,8,4,9,2,18,-2,14,-3,8,-3,5,1,2,15,-4,5,-9,3,3,-2,8,-3,8,-2,0,-19,10,-7,4,-18,4,-6,9,2,6,-13,5,-2,8,-12,7,0,5,-6,4,-9,3,-2,9,-13,8,-6,9,-9,1,-16,0,-12,3,-21,10,-9,2,-18,4,-14,-1,-19,5,-12,4,-11,-2,2,-7,-6,-1,-11,-2,-9,-3,-11,-2,-2,5,5,10,11,3,-3,3,-13,-6,-7,-6,-14,-7,7,-5,-9,-8,-11,-4,-10,-3,-3,-4,-15,-5,-3,-5,-12,-4,-7,0,-9,-2,-10,-4,-9,-3,-17,-3,-1,2,11,4,9,3,11,6,12,1,5,4,14,6,2,2,8,4,1,7,6,6,-12,-3,-3,2,-6,-4,-6,5,-3,-3,-4,5,-10,-4,-6,0,-1,6,2,3,-6,4,-13,-2,-9,5,-6,2,-1,6,-7,4,4,6,8,5,3,5,8,1,7,-1,8,4,8,0,7,3,-2,4,-5,2,7,4,-6,0,-11,-2,-3,-3,-7,3,-15,-2,-14,3,-4,4,-13,6,14,4,22,5,8,0,-1,-5,21,0,-8,6,-12,4,-7,5,-10,4,-14,4,6,5,18,0,12,5,3,5,10,4,10,1,19,5,9,-1,15,6,15,-3,8,-4,4,2,17,-1,-1,-2,16,-2,10,1,21,-3,19,-1,8,-1,13,2,15,-3,11,-2,19,-2,16,-5,10,-1,9,4,12,3,15,-1,15,4,16,3,7,-4,7,2,3,5,7,-1,16,-9,14,7,1,-8,12,2,4,3,12,-1,16,-4,23,-4,14,-2,10,1,13,-5,-14,-5,18,-2,27,1,9,2,10,-6,11,5,-10,4,6,4,12,0,9,1,8,-2,10,-6,11,1,17,-5,16,2,15,0,-2,6,9,2,16,-4,0,-9,6,8,8,0,5,10,-11,6,-12,4,1,11,12,7,13,-1,10,-5,14,-11,-9,-5,19,-2;-1142,731,-5,-4,23,3,13,-5,12,5,9,-4,8,-9,5,4,-7,10,9,1,10,-1,11,-4,6,-10,3,-7,17,-5,18,-5,-1,-4,-16,-1,6,-4,-3,-3,-18,1,-18,3,-11,-1,-19,-3,-30,-2,-13,-1,-6,5,-13,3,-9,-1,-12,8,6,1,16,1,14,0,13,2,-19,2,-22,-1,-14,0,-5,4,23,4,-16,0,-17,3,8,7,7,4,27,6,10,-2;-1045,734,-9,-6,-15,7,3,1,13,0,8,-2;-763,731,0,-3,-10,1,-11,0,-11,-2,-3,1,-11,5,1,4,4,1,23,-1,18,-6;-866,732,8,-7,9,8,26,5,17,-11,-2,-6,20,3,10,4,22,-6,14,-4,1,-5,19,3,10,-7,24,-4,9,-4,9,-9,-18,-5,23,-6,16,-3,15,-9,15,0,-3,-7,-17,-12,-12,4,-16,10,-13,-1,-1,-6,10,-6,14,-5,4,-2,6,-10,-3,-7,-13,2,-25,8,14,-8,11,-6,1,-4,-27,4,-21,6,-12,5,3,3,-15,5,-14,5,0,-3,-29,-2,-9,4,7,7,19,0,20,2,-3,3,4,5,12,10,-2,4,-4,4,-15,5,-21,3,7,2,-11,7,-9,0,-8,4,-5,-3,-18,-2,-36,3,-22,3,-16,1,-8,4,10,4,-14,0,-3,10,8,9,10,4,26,3,-8,-6;-1004,738,12,-2,18,2,3,-3,-10,-5,16,-4,-2,-9,-17,-4,-9,1,-7,3,-25,8,0,3,21,-1,-11,7,11,4;1436,732,-15,0,-21,1,-1,1,9,4,13,1,14,-4,1,-3;-932,728,-11,-8,-11,1,-6,8,0,5,5,5,10,2,21,0,19,-2,-15,-9,-12,-2;-1205,714,-26,-5,-5,4,-23,6,3,3,8,8,9,7,-10,6,34,1,14,-2,25,0,10,-3,11,-4,-13,-3,-24,-7,-13,-7,0,-4;1507,751,-11,-4,-16,1,-19,4,3,3,18,-2,25,-2;-936,750,-6,-4,-14,1,-12,2,5,5,14,2,9,-3,4,-3;1451,756,-8,-8,-37,0,-16,-2,-20,7,5,6,13,2,27,0,36,-5;-985,767,8,-4,0,-6,-5,-7,-16,-1,-11,2,0,5,-16,0,-1,7,11,0,15,3,14,0,1,1;-1082,762,4,-4,9,2,10,0,2,-5,-6,-5,-34,-1,-25,-5,-15,0,-2,3,21,5,-45,-2,-14,2,14,10,9,3,28,-4,18,-6,17,0,-14,9,9,4,10,-1,4,-5;575,707,-6,-1,-32,2,-3,4,-18,3,-1,5,10,2,-1,6,20,8,-9,2,24,8,-3,5,23,5,33,7,33,1,17,4,20,1,7,-4,-7,-3,-36,-5,-30,-4,-31,-10,-15,-10,-16,-9,2,-9,19,-8;-947,771,11,-3,20,0,9,-3,-3,-4,12,-3,6,-2,14,0,14,-1,16,2,20,1,17,-1,10,-4,3,-4,-7,-2,-14,-3,-13,2,-29,-2,-20,0,-17,1,-26,3,-4,6,-1,5,-10,4,-21,1,-11,4,4,4,20,-1;-1162,776,-1,-7,-8,-4,-9,0,-19,-4,-16,-2,-14,2,17,8,21,6,15,0,14,1;-938,775,-5,0,-19,1,-2,2,20,0,7,-2,-1,-1;-1102,777,-19,-3,-14,3,8,4,14,1,14,-2,-3,-3;247,779,-22,-5,-18,3,7,2,-6,4,21,2,4,-4,14,-2;-1097,786,-12,-2,-16,0,0,2,10,3,5,-1,13,-2;-958,781,-15,-3,-8,3,-5,4,0,4,13,-1,5,0,12,-4,-2,-3;-1001,783,4,-4,-16,1,-16,3,-23,1,10,3,-12,2,-1,4,20,-1,27,-4,7,-5;1051,783,-57,-4,19,13,8,1,7,0,26,-6,-3,-4;183,797,32,-7,-25,-4,-5,-8,-9,-2,-5,-8,-12,0,-21,6,9,3,-15,3,-20,9,-8,8,28,3,5,-3,14,0,4,3,15,1,13,-4;254,804,20,-3,-15,-6,-29,-1,-29,2,-2,2,-14,1,-11,4,31,3,14,-2,10,3,25,-3;511,805,-13,-1,-9,-1,-1,-1,-12,-2,-11,2,6,4,-23,0,20,2,15,0,2,-3,6,3,9,1,15,-2,-4,-2;999,789,-21,-1,-28,2,-17,4,-8,7,-13,2,26,7,21,3,20,-6,23,-9,-3,-9;-870,797,12,-4,-14,-3,-18,-7,-18,-1,-21,1,-11,5,1,3,8,3,-19,0,-11,3,-6,5,7,4,7,3,10,1,-4,2,23,1,13,-6,17,-2,16,-2,8,-6;-685,831,27,-1,21,-1,18,-3,0,-2,-24,-5,-25,-2,-9,-2,22,0,-23,-6,-17,-3,-17,-8,-20,-2,-7,-2,-30,-1,14,-1,-7,-2,8,-5,-9,-3,-16,-3,-5,-4,-14,-3,2,-2,17,0,0,-2,-27,-6,-26,3,-29,-2,-15,1,-19,1,-1,5,18,2,-5,7,7,1,26,-5,-13,7,-17,2,8,4,18,2,3,3,-14,4,-4,6,27,-1,8,-1,16,4,-23,1,-35,-1,-18,4,-8,4,-12,3,-2,3,15,2,12,0,19,2,15,4,12,-1,11,-3,8,6,13,1,18,1,30,1,6,-1,29,1,21,0,22,-1;-271,835,63,-8,-19,-4,-38,0,-54,-1,5,-2,35,1,31,-3,19,3,8,-4,-11,-5,26,3,48,4,30,-2,6,-4,-41,-7,-5,-3,-32,-1,23,-1,-12,-7,-8,-6,0,-12,12,-6,-15,-1,-17,-3,19,-5,2,-9,-11,0,13,-9,-22,-1,12,-4,-4,-3,-14,-2,-14,0,13,-7,0,-4,-20,4,-5,-3,14,-2,13,-6,3,-8,-17,-2,-8,4,-12,5,3,-6,-12,-6,27,0,14,-1,-27,-8,-27,-8,-30,-4,-11,0,-10,-4,-14,-10,-22,-7,-6,-1,-14,-2,-14,-2,-9,-7,0,-7,-5,-6,-16,-8,4,-8,-5,-8,-5,-10,-14,-1,-15,9,-20,0,-9,5,-7,10,-17,12,-5,7,-2,9,-14,9,4,7,-7,4,10,12,15,3,4,4,2,8,-11,-3,-6,-2,-9,-1,-12,3,-1,7,4,5,10,0,20,-2,-17,6,-9,3,-10,-1,-8,3,11,9,-6,4,-8,7,-12,10,-13,4,0,4,-27,6,-21,1,-27,-1,-24,0,-12,3,-17,6,26,3,20,1,-42,2,-23,4,1,4,38,5,37,5,4,4,-27,3,9,4,34,7,15,1,-4,5,23,2,31,2,31,0,11,-3,26,5,24,-3,14,-1,21,-3,-24,5,1,4,34,6,35,0,13,3,35,1,80,-1', onPick: id => { st.sel = id; if (st.src !== 'tle') setSrc('tle'); save(); renderAll(); if (navigator.vibrate) navigator.vibrate(15); } });
   if (v === 'globe') globe.resize();
   renderAll();
@@ -1131,6 +1208,8 @@ $('refresh').addEventListener('click', () => { $('dataMsg').textContent = T('che
 $('file').addEventListener('change', async e => { const fl = e.target.files[0]; if (!fl) return; if (useText(await fl.text(), { at: Date.now(), src: 'file ' + fl.name })) { dataErr = ''; setSrc('tle'); } else { dataErr = T('badFile'); } renderAll(); });
 $('vGlobe').addEventListener('click', () => setView('globe')); $('vSky').addEventListener('click', () => setView('sky'));
 $('recenter').addEventListener('click', () => globe && globe.recenter());
+$('focusBtn').addEventListener('click', () => globe && globe.focus());
+$('zIn').addEventListener('click', () => globe && globe.zoom(1.8)); $('zOut').addEventListener('click', () => globe && globe.zoom(1 / 1.8));
 for (const [id, l] of [['lngTr', 'tr'], ['lngEn', 'en']]) $(id).addEventListener('click', () => { st.lang = T.lang = l; save(); applyLang(); renderAll(); renderSaved(); });
 for (const [id, v] of [['thAuto', 'auto'], ['thLight', 'light'], ['thDark', 'dark']]) $(id).addEventListener('click', () => { st.theme = v; save(); applyTheme(); renderAll(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
